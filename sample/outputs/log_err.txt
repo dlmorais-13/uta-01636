@@ -1,0 +1,18 @@
+At line 40 of file fixin.f (unit = 8, file = 'fix.100')
+Fortran runtime error: Bad real number in item 1 of list input
+
+Error termination. Backtrace:
+#0  0x77f4f21148c2 in ???
+#1  0x77f4f21153b9 in ???
+#2  0x77f4f2115f0f in ???
+#3  0x77f4f2353403 in ???
+#4  0x77f4f23547ad in ???
+#5  0x77f4f23553fa in ???
+#6  0x5eb80997e9ba in fixin
+	at /usr/src/app/fixin.f:40
+#7  0x5eb809961af6 in detiv
+	at /usr/src/app/csa_detiv.f:335
+#8  0x5eb809962b59 in MAIN__
+	at /usr/src/app/csa_main.f:242
+#9  0x5eb809963662 in main
+	at /usr/src/app/csa_main.f:411
