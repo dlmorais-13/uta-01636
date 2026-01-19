@@ -3,15 +3,15 @@ setwd("/home/daniel/Projects/daycent/sample/")
 
 #get the relative executable path.
 
-exe_path = "/home/daniel/Projects/daycent/"
+# exe_path = "/home/daniel/Projects/daycent/"
 
-list_exe = list.files(exe_path, full.names = T)
-file.copy(from = list_exe, to = getwd(), overwrite = T)
+# list_exe = list.files(exe_path, full.names = T)
+# file.copy(from = list_exe, to = getwd(), overwrite = T)
 
 # set DayCent executable 
 
-dc_exe = "./DDcentEVI_rev491"
-dc_L100 = "./DDlist100_rev491"
+dc_exe = "../DDcentEVI_rev491"
+dc_L100 = "../DDlist100_rev491"
 
 # print DayCent help menu
 system2(command = dc_exe) 
@@ -24,17 +24,13 @@ eq_args <- "-s wooster_eq -N eq"
 
 eq_log <- system2(command = dc_exe, 
                   args = eq_args,
-                  wait = T,
-                  stdout = T,
-                  stderr = T) 
+                  wait = T) 
 
 # base history run
 bh_args <- "-s wooster_base -e eq -N base"
 bh_log  <- system2(command = dc_exe,
                    args = bh_args,
-                   wait = T,
-                   stdout = T,
-                   stderr = T) 
+                   wait = T) 
 
 #====================== equilibrium run =================================
 # setup to produce some outfiles during Experimental peirods 
@@ -43,17 +39,13 @@ file.copy(from = "few_outfiles.in", to = "outfiles.in", overwrite = T)
 trt_args <- "-s wooster_cb_nt_blk1 -e base -N cb_nt"
 trt_log <- system2(command = dc_exe,
                    args = trt_args,
-                   wait = T,
-                   stdout = T,
-                   stderr = T) 
+                   wait = T) 
 
 # extract and read equilibrium output from .bin file
 lis_args <- paste("cb_nt wooster few_outvars.txt")
 lis_log <- system2(command = dc_L100, 
                    args = lis_args,
-                   wait = T,
-                   stdout = T,
-                   stderr = T)
+                   wait = T)
 
 wooster_lis <- read.table(file = "wooster.lis", skip = 3)
 names(wooster_lis) <-  c("time", "crpval", "cgrain", "accrst", "agcprd", "bgcjprd", "bgcmprd",
@@ -82,7 +74,7 @@ plot(x = wooster_lis$id, y = wooster_lis$somsc, type = 'l', lwd = 3, xlab = "", 
 points(x = wooster_soc$id, y = wooster_soc$measSOC, pch = 16, col = "red")
 
 #### 
-unlink(dc_exe)
-unlink(dc_L100)
+# unlink(dc_exe)
+# unlink(dc_L100)
 
 
