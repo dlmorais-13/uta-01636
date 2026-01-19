@@ -1,9 +1,9 @@
 # *** Set you local path ****
-setwd("C:/Users/c829439661/OneDrive - Colostate/Desktop/CSU_docs/CSCS/DAYCENT/DayCent Ecosystem Model/DayCent_Version_491/DayCent_Version_491/WoosterExampleLinux/")
+setwd("/home/daniel/Projects/daycent/sample/")
 
 #get the relative executable path.
 
-exe_path = file.path(dirname(getwd()),"Linux_Version_491")
+exe_path = "/home/daniel/Projects/daycent/"
 
 list_exe = list.files(exe_path, full.names = T)
 file.copy(from = list_exe, to = getwd(), overwrite = T)
