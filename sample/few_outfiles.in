@@ -8,7 +8,7 @@ Output (0/1)    file_name       description
 0             vswc.out          # daily volumetric soilwater content by layer
 0             watrbal.out       # daily water balance
 0             wfps.out          # daily water filled pore space by layer
-0             co2.out           # daily CO2 concentrations by layer
+1             co2.out           # daily CO2 concentrations by layer
 0             wflux.out         # daily water flux through the bottom of soil layers
 0             mresp.out         # daily maintenance respiration
 1             year_summary.out  # yearly trace gas fluxes
