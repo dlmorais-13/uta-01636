@@ -1,0 +1,6 @@
+.venv/
+.env
+workdir/
+__pycache__/
+arcgis_poc/
+sample/
