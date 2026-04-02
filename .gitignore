@@ -2,6 +2,8 @@
 .env
 workdir/
 __pycache__/
+.pytest_cache/
+*.egg-info/
 arcgis_poc/
 sample/
 DDcentEVI_rev491

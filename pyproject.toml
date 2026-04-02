@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uta01636-daycent"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+authors = [ {name = "Daniel Lemos de Morais", email = "daniel.lemos@usu.edu"} ]
+dependencies = [
+    "arcgis",
+    "arcgis-mapping",
+    "colorama",
+    "rasterio",
+    "fiona",
+    "pyproj",
+    "geopandas",
+    "keyrings.alt",
+    "soildb[all]",
+    "dotenv",
+    "camel-converter",
+    "fastapi[standard]"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.0"]
+
+[tool.fastapi]
+entrypoint = "src.main:app"

@@ -1,0 +1,99 @@
+html {
+    --usu-aggie-blue: #0F2439;
+    --usu-white: #FFFFFF;
+    --usu-blue: #384660;
+    --usu-blue-light: #E1EAF9;
+    --usu-blue-dark: #2F3A50;
+    --usu-blue-darker: #252F40;
+    --usu-gray-lighter: #E9ECEF;
+    --usu-gray-light: #DEE2E6;
+    --usu-gray: #CED4DA;
+    --usu-gray-title: #a8b4c1;
+    --usu-gray-dark: #838898;
+    --usu-gray-darker: #495057;
+    --usu-black-light: #343A40;
+    --usu-black: #1E252B;
+    --usu-bright-light: #4494DA;
+    --usu-brick: #C44E28;
+    --usu-green-light: #7D9C3A;
+    --usu-grape: #543035;
+    --usu-success: #588038;
+    --usu-info: #226BAA;
+    --usu-warning: #AE6002;
+    --usu-danger: #A6260D;
+}
+
+body {
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"
+}
+
+body { min-height:100vh; } 
+body {
+	display: flex;
+	flex-direction: column; 
+    font-variant-ligatures: common-ligatures;
+}
+@media screen and (max-width: 1199.98px) {
+    #site-header .container,
+	#search-overlay .container,
+    nav.navbar .container,
+    footer .container {
+        width: 100%;
+        max-width: none;
+    }
+}
+@media only screen and (min-width : 992px) {
+	.container, .container-xl { /* Increase max screen width for large containers */
+		max-width: 1320px;
+	}
+	.container.container-narrow {
+		max-width: 1070px;
+	}
+}
+@media (min-width: 768px) {
+	main#content a[href^="tel:"] {
+		text-decoration: none;
+		color: inherit;
+	}
+}
+
+.small {
+    font-size: 80%;
+}
+
+.accordion-enter-active,
+.accordion-leave-active {
+  transition: all 0.2s linear;
+}
+
+.accordion-enter-from,
+.accordion-leave-to {
+  height: 0px;
+}
+
+.accordion-enter-to,
+.accordion-leave-from {
+  height: 51px;
+}
+
+.opacity-enter-active,
+.opacity-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.opacity-enter-from,
+.opacity-leave-to {
+  opacity: 0;
+}
+
+svg:not(:host).svg-inline--fa, svg:not(:root).svg-inline--fa {
+    overflow: visible;
+    box-sizing: content-box;
+}
+
+.svg-inline--fa {
+    display: var(--fa-display, inline-block);
+    height: 1em;
+    overflow: visible;
+    vertical-align: -.125em;
+}
