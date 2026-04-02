@@ -1,5 +1,6 @@
-import * as Vue from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
-import { loadModule } from 'https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.esm.js'
+import * as Vue from 'vue';
+import { loadModule } from 'vue-sfc-loader'
+import { createRouter, createWebHistory } from 'vue-router'
 
 const options = {
     moduleCache: {
@@ -21,8 +22,26 @@ const options = {
     log(type, ...args) {
         console.log(type, ...args);
     }
-}
+};
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [{
+      path: '',
+      component: Vue.defineAsyncComponent(() => loadModule('./pages/home-page.vue', options))
+    },
+    {
+      path: '/map',
+      component: Vue.defineAsyncComponent(() => loadModule('./pages/map-page.vue', options))
+    },
+    {
+      path: '/admin',
+      component: Vue.defineAsyncComponent(() => loadModule('./pages/admin-page.vue', options))
+    },
+  ]
+});
 
 const app = Vue.createApp(Vue.defineAsyncComponent(() => loadModule('./components/main.vue', options)));
-app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('arcgis-')
+app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('arcgis-');
+app.use(router);
 app.mount('#app');

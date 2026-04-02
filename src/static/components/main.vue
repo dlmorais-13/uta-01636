@@ -4,7 +4,7 @@
             <UsuHeader></UsuHeader>
 
             <main class="flex-grow-1">
-                <MapPage></MapPage>
+                <RouterView></RouterView>
             </main>
         </div>
 
@@ -27,12 +27,11 @@
 
 <script>
 import UsuHeader from './usu-header.vue';
-import MapPage from './map-page.vue';
 import UsuFatFooter from './usu-fat-footer.vue';
 import UsuGlobalFooter from './usu-global-footer.vue';
 
 export default {
-    components: { UsuHeader, MapPage, UsuFatFooter, UsuGlobalFooter }
+    components: { UsuHeader, UsuFatFooter, UsuGlobalFooter }
 }
 </script>
 

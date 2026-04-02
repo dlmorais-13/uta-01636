@@ -11,9 +11,9 @@
                             alt="UState logo">
                     </a>
                 </div>
-                <a class="nav-brand py-3" href="/">
+                <router-link class="nav-brand py-3" to="/">
                     <div>System Name</div>
-                </a>
+                </router-link>
                 <button class="navbar-toggler custom-toggler mr-sm-2 px-2" type="button" data-toggle="offcanvas"
                     aria-haspopup="dialog" @click="offcanvasOpen = true">
                     <span class="sr-only">Open main menu</span><span class="navbar-toggler-icon"></span>
@@ -47,13 +47,13 @@
                 </div>
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
+                        <router-link class="nav-link" to="/">Home</router-link>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/map">Map</a>
+                        <router-link class="nav-link" to="/map">Map</router-link>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/admin">Admin</a>
+                        <router-link class="nav-link" to="/admin">Admin</router-link>
                     </li>
                 </ul>
                 <ul class="navbar-nav navbar-global py-3">

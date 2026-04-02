@@ -11,10 +11,10 @@
                                 alt="Utah State University logo">
                         </a>
                         <div class="brand-inline ml-3 pl-3">
-                            <a class="header-brand" href="/">
+                            <router-link class="header-brand" to="/">
                                 System Name
                                 <!-- Landscape Architecture & Environmental Planning -->
-                            </a>
+                            </router-link>
                             <a class="header-sub-brand" href="https://qanr.usu.edu/laep/">
                                 Department Responsible
                                 <!-- S.J. & Jessie E. Quinney College of Agriculture & Natural Resources -->
