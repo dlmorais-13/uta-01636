@@ -2,26 +2,144 @@ html {
     --usu-aggie-blue: #0F2439;
     --usu-white: #FFFFFF;
     --usu-blue: #384660;
-    --usu-blue-light: #E1EAF9;
+    --usu-blue-light: #e1eaf9;
     --usu-blue-dark: #2F3A50;
     --usu-blue-darker: #252F40;
-    --usu-gray-lighter: #E9ECEF;
-    --usu-gray-light: #DEE2E6;
-    --usu-gray: #CED4DA;
+    --usu-gray-lighter: #e9ecef;
+    --usu-gray-light: #dee2e6;
+    --usu-gray: #ced4da;
+    --usu-gray-hover: #C8CFD6;
     --usu-gray-title: #a8b4c1;
     --usu-gray-dark: #838898;
     --usu-gray-darker: #495057;
-    --usu-black-light: #343A40;
-    --usu-black: #1E252B;
+    --usu-black-light: #343a40;
+    --usu-black: #1e252b;
+    --usu-black-dark: #000000;
     --usu-bright-light: #4494DA;
-    --usu-brick: #C44E28;
-    --usu-green-light: #7D9C3A;
+    --usu-bright-dark: #2e4676;
+    --usu-brick: #c44e28;
+    --usu-brick-hover: #831E0A;
+    --usu-sand: #d1cbbd;
+    --usu-sand-hover: #e6dfcf;
+    --usu-sage: #6b9e85;
+    --usu-sage-hover: #608d77;
+    --usu-green-light: #7d9c3a;
+    --usu-green-light-hover: #577F35;
     --usu-grape: #543035;
+    --usu-grape-hover: #341015;
     --usu-success: #588038;
-    --usu-info: #226BAA;
+    --usu-success-hover: #46652C;
+    --usu-info: #226baa;
+    --usu-info-hover: #1c578a;
     --usu-warning: #AE6002;
+    --usu-warning-hover: #884B02;
     --usu-danger: #A6260D;
+    --usu-bg-hover: #f8f9fa;
 }
+
+/* Colors */
+.bg-hover:hover { background-color: var(--usu-bg-hover);}
+.bg-brand { background-color: var(--usu-aggie-blue); } 
+.text-brand { color: var(--usu-aggie-blue) !important;} 
+.bg-hover.bg-primary:hover,
+.bg-brand.bg-primary:hover {color: var(--usu-black-dark) !important;}
+.text-hover.text-brand:hover { color: var(--usu-black-dark); }
+
+.bg-blue-darker { background-color: var(--usu-blue-darker) !important;}
+.bg-blue-dark { background-color: var(--usu-blue-dark) !important;}
+.text-blue-dark { color: var(--usu-blue-dark) !important;}
+.bg-blue { background-color: var(--usu-blue) !important;}
+.text-blue { color: var(--usu-blue) !important;}
+.bg-hover.bg-blue-darker:hover,
+.bg-hover.bg-blue-dark:hover,
+.bg-hover.bg-blue:hover { background-color: var(--usu-aggie-blue) !important;}
+.text-hover.text-blue-darker:hover,
+.text-hover.text-blue-dark:hover,
+.text-hover.text-blue:hover { color: var(--usu-aggie-blue) !important;}
+
+.bg-blue-light {background-color: var(--usu-blue-light) !important;}
+.text-blue-light { color: var(--usu-blue-light) !important;}
+.bg-hover.bg-blue-light:hover { background-color: var(--usu-gray-light) !important; }
+.text-hover.text-blue-light:hover { color: var(--usu-gray-light) !important; }
+
+.bg-bright-dark {background-color: var(--usu-bright-dark) !important;}
+.text-bright-dark { color: var(--usu-bright-dark) !important;}
+.bg-bright {background-color: var(--usu-info) !important;}
+.text-bright { color: var(--usu-info) !important;}
+.bg-hover.bg-bright-dark:hover,
+.bg-hover.bg-bright:hover,
+.bg-hover.bg-info:hover { background-color: var(--usu-info-hover) !important; }
+.text-hover.text-bright-dark:hover,
+.text-hover.text-bright:hover,
+.text-hover.text-info:hover { color: var(--usu-info-hover) !important; }
+
+.bg-bright-light { background-color: var(--usu-bright-light) !important;}
+.text-bright-light { color: var(--usu-bright-light) !important; }
+.bg-hover.bg-bright-light:hover { background-color: var(--usu-info) !important;}
+.text-hover.text-bright-light:hover, .text-hover:hover .text-bright-light { color: var(--usu-info) !important;}
+
+.bg-sage { background-color: var(--usu-sage) !important;}
+.text-sage { color: var(--usu-sage) !important; }
+.bg-hover.bg-sage:hover { background-color: var(--usu-sage-hover) !important;}
+.text-hover.text-sage:hover, .text-hover:hover .text-sage { color: var(--usu-sage-hover) !important;}
+
+.bg-sand { background-color: var(--usu-sand) !important;}
+.text-sand { color: var(--usu-sand) !important; }
+.bg-hover.bg-sand:hover { background-color: var(--usu-sand-hover) !important;}
+.text-hover.text-sand:hover, .text-hover:hover .text-sand { color: var(--usu-sand-hover) !important;}
+
+.bg-gray-lighter { background-color: var(--usu-gray-lighter) !important;}
+.text-gray-lighter { color: var(--usu-gray-lighter) !important;}
+.bg-gray-light { background-color: var(--usu-gray-light) !important;}
+.text-gray-light { color: var(--usu-gray-light) !important;}
+.bg-gray { background-color: var(--usu-gray) !important;}
+.text-gray, .text-gray:hover { color: var(--usu-gray) !important;}
+.bg-hover.bg-gray-lighter:hover,
+.bg-hover.bg-gray-light:hover,
+.bg-hover.bg-gray:hover {	background-color: var(--usu-gray-hover) !important;}
+.text-hover.text-gray-lighter:hover,
+.text-hover.text-gray-light:hover,
+.text-hover.text-gray:hover {	color: var(--usu-gray-hover) !important;}
+
+.bg-gray-dark {background-color: var(--usu-gray-dark) !important; }
+.text-gray-dark {color: var(--usu-gray-dark) !important; }
+.bg-gray-darker {background-color: var(--usu-gray-darker) !important; }
+.text-gray-darker {color: var(--usu-gray-darker); }
+.bg-hover.bg-gray-dark:hover,
+.bg-hover.bg-gray-darker:hover { background-color: var(--usu-black-dark) !important;	}
+.text-hover.text-gray-dark:hover,
+.text-hover.text-gray-darker:hover { color: var(--usu-black-dark) !important;	}
+
+.bg-black-light {background-color: var(--usu-black-light) !important; }
+.text-black-light { color: var(--usu-black-light) !important; }
+.bg-black { background-color: var(--usu-black) !important; }
+.text-black, .text-black:hover {color: var(--usu-black) !important; }
+.bg-hover.bg-black-light:hover,
+.bg-hover.bg-black:hover {	background-color: var(--usu-black-dark) !important;}
+.text-hover.text-black-light:hover,
+.text-hover.text-black:hover {	color: var(--usu-black-dark) !important;}
+
+.bg-green-light  { background-color: var(--usu-green-light) !important; }
+.text-green-light{ color: var(--usu-green-light) !important; }
+.bg-hover.bg-green-light:hover { background-color: var(--usu-green-light-hover) !important; }
+.text-hover.text-green-light:hover { color: var(--usu-green-light-hover) !important; }
+
+.bg-brick  { background-color: var(--usu-brick) !important; }	
+.text-brick { color: var(--usu-brick) !important; }	
+.bg-hover.bg-brick:hover,
+.bg-hover.bg-danger:hover { background-color: var(--usu-brick-hover); }
+.text-hover.text-brick:hover,
+.text-hover.text-danger:hover { color: var(--usu-brick-hover); }
+
+.bg-grape  { background-color: var(--usu-grape) !important; }
+.text-grape { color: var(--usu-grape) !important; }
+.bg-hover.bg-grape:hover { background-color: var(--usu-grape-hover);}
+.text-hover.text-grape:hover { color: var(--usu-grape-hover);}
+
+.bg-hover.bg-success:hover { background-color: var(--usu-success-hover);}
+.bg-hover.bg-warning:hover { background-color: var(--usu-warning-hover);}
+.text-hover.text-success:hover { color: var(--usu-success-hover);}
+.text-hover.text-warning:hover { color: var(--usu-warning-hover);}
 
 body {
     font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"
@@ -96,4 +214,8 @@ svg:not(:host).svg-inline--fa, svg:not(:root).svg-inline--fa {
     height: 1em;
     overflow: visible;
     vertical-align: -.125em;
+}
+
+#site-footer .btn-bright-light, #site-footer .btn-sage, #site-footer .btn-sand {
+	font-size: 1.167rem;
 }

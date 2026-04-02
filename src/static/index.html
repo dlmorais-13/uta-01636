@@ -7,42 +7,13 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,400,700&display=swap">
   <link rel="stylesheet" href="main.css" />
+
+  <script type="module" src="https://js.arcgis.com/5.0/"></script>
+  <script type="module" src="/main.js"></script>
   
   <title>UTA01636</title>
 </head>
 <body>  
     <div id="app"></div>
-    
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader"></script>
-
-    <script>
-      const options = {
-        moduleCache: {
-          vue: Vue,
-        },
-        
-        async getFile(url) {
-          const res = await fetch(url);
-          if (!res.ok) throw Object.assign(new Error(res.statusText + ' ' + url), { res });
-          return { getContentData: asBinary => asBinary ? res.arrayBuffer() : res.text() }
-        },
-        
-        addStyle(textContent) {
-          const style = Object.assign(document.createElement('style'), { textContent });
-          const ref = document.head.getElementsByTagName('style')[0] || null;
-          document.head.insertBefore(style, ref);
-        },
-        
-        log(type, ...args) {
-          console.log(type, ...args);
-        }
-      }
-      
-      const { loadModule } = window["vue3-sfc-loader"];
-      
-      const app = Vue.createApp(Vue.defineAsyncComponent(() => loadModule('./components/main.vue', options)));
-      app.mount('#app');
-    </script>
 </body>
 </html>

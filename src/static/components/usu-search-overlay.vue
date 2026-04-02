@@ -78,13 +78,13 @@ export default {
 
 #search-overlay .close-btn .btn {
     display: flex;
-    color: #ffffff;
+    color: var(--usu-white);
     padding: 0;
 }
 
 #search-overlay .close-btn .btn:hover,
 #search-overlay .close-btn .btn:focus {
-    color: #0F2439;
+    color: var(--usu-aggie-blue);
 }
 
 #search-overlay {
@@ -93,7 +93,7 @@ export default {
     content: '';
     top: 0;
     left: 0;
-    background: #4494DA;
+    background: var(--usu-bright-light);
     width: 100%;
     height: 100%;
     z-index: 9999;
@@ -101,16 +101,16 @@ export default {
 
 #search-overlay h2 {
     font-size: 1.5rem;
-    color: #0F2439;
+    color: var(--usu-aggie-blue);
 }
 
 #search-overlay .input-group input {
     height: 40px;
     background: transparent;
     font-size: 1.4rem;
-    color: #fff;
+    color: var(--usu-white);
     border: none;
-    border-bottom: solid 1px #ced4da;
+    border-bottom: solid 1px var(--usu-gray);
     border-radius: 0px;
 }
 
@@ -118,28 +118,28 @@ export default {
     background: transparent;
     outline: none;
     box-shadow: none;
-    border-color: #ced4da;
-    color: #fff;
+    border-color: var(--usu-gray);
+    color: var(--usu-white);
 }
 
 #search-overlay .input-group .btn {
-    color: #ffffff;
+    color: var(--usu-white);
     border: none;
-    border-bottom: 1px solid #ced4da;
+    border-bottom: 1px solid var(--usu-gray);
     border-radius: 0px;
 }
 
 #search-overlay .input-group .btn:hover {
-    color: #0F2439;
+    color: var(--usu-aggie-blue);
 }
 
 #search-overlay .input-group .btn:focus {
-    color: #0F2439;
+    color: var(--usu-aggie-blue);
 }
 
 #search-overlay ::placeholder {
     /* Chrome, Firefox, Opera, Safari 10.1+ */
-    color: #fff;
+    color: var(--usu-white);
     font-weight: normal;
     background: transparent;
     opacity: 1;
@@ -148,14 +148,14 @@ export default {
 
 #search-overlay :-ms-input-placeholder {
     /* Internet Explorer 10-11 */
-    color: #fff;
+    color: var(--usu-white);
     font-weight: normal;
     background: transparent;
 }
 
 #search-overlay ::-ms-input-placeholder {
     /* Microsoft Edge */
-    color: #fff;
+    color: var(--usu-white);
     font-weight: normal;
     background: transparent;
 }
@@ -166,7 +166,7 @@ export default {
 #search-overlay input:-webkit-autofill:active {
     -webkit-animation: autofill 0s forwards;
     animation: autofill 0s forwards;
-    color: #ffffff;
+    color: var(--usu-white);
 }
 
 #search-overlay i {
