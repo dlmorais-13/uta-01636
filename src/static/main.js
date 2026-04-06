@@ -28,20 +28,34 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [{
       path: '',
-      component: Vue.defineAsyncComponent(() => loadModule('./pages/home-page.vue', options))
+      component: () => loadModule('/pages/home-page.vue', options)
     },
     {
       path: '/map',
-      component: Vue.defineAsyncComponent(() => loadModule('./pages/map-page.vue', options))
+      component: () => loadModule('/pages/map-page.vue', options)
     },
     {
       path: '/admin',
-      component: Vue.defineAsyncComponent(() => loadModule('./pages/admin-page.vue', options))
+      component: () => loadModule('/pages/admin-page.vue', options),
+      children: [
+        {
+          path: '',
+          redirect: '/admin/simulations'
+        },
+        {
+          path: 'simulations',
+          component: () => loadModule('/pages/admin-simulations-page.vue', options)
+        },
+        {
+          path: 'data-import',
+          component: () => loadModule('/pages/admin-data-import-page.vue', options)
+        }
+      ]
     },
   ]
 });
 
-const app = Vue.createApp(Vue.defineAsyncComponent(() => loadModule('./components/main.vue', options)));
+const app = Vue.createApp(Vue.defineAsyncComponent(() => loadModule('/components/main.vue', options)));
 app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('arcgis-');
 app.use(router);
 app.mount('#app');

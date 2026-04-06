@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.requests import Request
 
 app = FastAPI()
-ROUTES = ['/', '/map', '/admin']
+ROUTES = ['/', '/map', '/admin', '/admin/data-import', '/admin/simulations']
 
 @app.middleware("http")
 async def serve_spa(request: Request, call_next):

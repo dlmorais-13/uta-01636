@@ -83,21 +83,17 @@
     </nav>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            quickLinksOpen: false
-        }
-    },
+<script setup>
+import { ref } from 'vue';
 
-    props: {
-        onOpenSearchOverlay: {
-            type: Function,
-            default: () => { console.warning('usu-quick-links function to open search overlay not defined.') }
-        }
+defineProps({
+    onOpenSearchOverlay: {
+        type: Function,
+        default: () => { console.warning('usu-quick-links function to open search overlay not defined.') }
     }
-}
+});
+
+const quickLinksOpen = ref(false);
 </script>
 
 <style scoped>

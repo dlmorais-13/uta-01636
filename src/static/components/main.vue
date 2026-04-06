@@ -1,9 +1,9 @@
 <template>
     <div>
-        <div class="d-flex flex-column justify-content-between vh-100">
+        <div class="d-flex flex-column justify-content-between min-vh-100">
             <UsuHeader></UsuHeader>
 
-            <main class="flex-grow-1">
+            <main class="flex-grow-1 align-items-stretch d-flex">
                 <RouterView></RouterView>
             </main>
         </div>
@@ -25,14 +25,10 @@
     </div>
 </template>
 
-<script>
+<script setup>
 import UsuHeader from './usu-header.vue';
 import UsuFatFooter from './usu-fat-footer.vue';
 import UsuGlobalFooter from './usu-global-footer.vue';
-
-export default {
-    components: { UsuHeader, UsuFatFooter, UsuGlobalFooter }
-}
 </script>
 
 <style scoped>

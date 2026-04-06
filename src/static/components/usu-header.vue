@@ -31,24 +31,14 @@
     <UsuMainNav :on-open-search-overlay="() => searchOverlayOpen = true"></UsuMainNav>
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue'
+
 import UsuMainNav from './usu-main-nav.vue';
 import UsuQuickLinks from './usu-quick-links.vue';
 import UsuSearchOverlay from './usu-search-overlay.vue';
 
-export default {
-    components: {
-        UsuQuickLinks,
-        UsuSearchOverlay,
-        UsuMainNav
-    },
-
-    data() {
-        return {
-            searchOverlayOpen: false
-        }
-    }
-}
+const searchOverlayOpen = ref(false)
 </script>
 
 <style>

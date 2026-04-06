@@ -2,10 +2,6 @@
     <Map></Map>
 </template>
 
-<script>
+<script setup>
 import Map from '../components/map.vue'
-
-export default {
-    components: { Map }
-}
 </script>

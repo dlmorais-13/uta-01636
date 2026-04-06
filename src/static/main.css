@@ -151,6 +151,13 @@ body {
 	flex-direction: column; 
     font-variant-ligatures: common-ligatures;
 }
+
+.pointer { cursor: pointer;}
+.h-bold h1, .h-bold h2, .h-bold h3, .h-bold h4, .h-bold h5, .h-bold h6,
+.h-bold .h1, .h-bold .h2, .h-bold .h3, .h-bold .h4, .h-bold .h5, .h-bold .h6 {
+	font-weight: bold;
+}
+
 @media screen and (max-width: 1199.98px) {
     #site-header .container,
 	#search-overlay .container,
@@ -160,6 +167,7 @@ body {
         max-width: none;
     }
 }
+
 @media only screen and (min-width : 992px) {
 	.container, .container-xl { /* Increase max screen width for large containers */
 		max-width: 1320px;
@@ -168,6 +176,7 @@ body {
 		max-width: 1070px;
 	}
 }
+
 @media (min-width: 768px) {
 	main#content a[href^="tel:"] {
 		text-decoration: none;

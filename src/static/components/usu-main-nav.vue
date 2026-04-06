@@ -115,22 +115,18 @@
     </nav>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            offcanvasOpen: false,
-            quicklinksOpen: false
-        }
-    },
+<script setup>
+import { ref } from 'vue';
 
-    props: {
-        onOpenSearchOverlay: {
-            type: Function,
-            default: () => { console.warning('usu-quick-links function to open search overlay not defined.') }
-        }
+defineProps({
+    onOpenSearchOverlay: {
+        type: Function,
+        default: () => { console.warning('usu-quick-links function to open search overlay not defined.') }
     }
-}
+});
+
+const offcanvasOpen = ref(false);
+const quicklinksOpen = ref(false);
 </script>
 
 <style>
