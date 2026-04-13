@@ -1,6 +1,6 @@
 <template>
     <div class="flex-grow-1">
-        <HeroBanner text="Administration Page"></HeroBanner>
+        <HeroBanner text="Administration"></HeroBanner>
         <div class="container my-5">
             <div class="row">
                 <div class="col-lg-3">
@@ -24,5 +24,8 @@ const links = [{
 }, {
     href: '/admin/data-import',
     text: 'Data Import'
+}, {
+    href: '/admin/configurations',
+    text: 'Configurations'
 }]
 </script>

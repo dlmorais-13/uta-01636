@@ -49,6 +49,10 @@ const router = createRouter({
         {
           path: 'data-import',
           component: () => loadModule('/pages/admin-data-import-page.vue', options)
+        },
+        {
+          path: 'configurations',
+          component: () => loadModule('/pages/admin-configurations-page.vue', options)
         }
       ]
     },
