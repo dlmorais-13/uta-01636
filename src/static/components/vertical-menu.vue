@@ -1,5 +1,9 @@
 <template>
     <nav id="sub-menu" class="navbar navbar-expand-lg my-4 px-0 pb-lg-4 pt-lg-0">
+        <div class="p-3 w-100" v-if="$slots.header">
+            <slot name="header"></slot>
+        </div>
+
         <div class="sub-menu-brand-wrapper pb-1 py-lg-3">
             <a class="sub-menu-brand px-3" href="#">Menu</a>
             <button class="navbar-toggler collapsed custom-toggler" data-toggle="collapse"

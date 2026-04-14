@@ -4,7 +4,17 @@
             <UsuHeader></UsuHeader>
 
             <main class="flex-grow-1 align-items-stretch d-flex">
-                <RouterView></RouterView>
+                <router-view v-slot="{ Component }">
+                    <Suspense :timeout="0">
+                        <component :is="Component" />
+                        <template #fallback>
+                            <div class="align-items-center d-flex justify-content-center mt-5 w-100 text-bright">
+                                <strong>Loading...</strong>
+                                <div class="spinner-border ml-3" role="status" aria-hidden="true"></div>
+                            </div>
+                        </template>
+                    </Suspense>
+                </router-view>
             </main>
         </div>
 
