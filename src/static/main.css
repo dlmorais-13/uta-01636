@@ -248,3 +248,20 @@ svg:not(:host).svg-inline--fa, svg:not(:root).svg-inline--fa {
 	border-color: var(--usu-bright-light-hover);
 	color: var(--usu-white);
 }
+
+.btn-info {
+    color: var(--usu-white);
+    background-color: var(--usu-info);
+    border-color: var(--usu-info);
+}
+
+.btn-info:hover {
+    color: var(--usu-white);
+    background-color: var(--usu-info-hover);
+    border-color: var(--usu-info-hover);
+}
+
+/** Backgrounds */
+.bg-info {
+    background-color: var(--usu-info) !important;
+}

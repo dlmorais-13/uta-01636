@@ -27,10 +27,6 @@
         <input type="text" class="form-control" id="agol-project-name" readonly
             v-model="editableConfigs.agol_project_name.config" />
     </AdminConfigurationInput>
-    <AdminConfigurationInput label="ArcGIS Online Project Folder">
-        <input type="text" class="form-control" id="agol-project-folder" readonly
-            v-model="editableConfigs.agol_project_folder.config" />
-    </AdminConfigurationInput>
     <AdminConfigurationInput label="ArcGIS Online Group ID">
         <input type="text" class="form-control" id="agol-group-id" readonly
             v-model="editableConfigs.agol_project_group_id.config" />
@@ -139,28 +135,27 @@ if (props.credentials) {
         let configs = await response.json();
 
         originalConfigs.value = configs.envs.reduce((acc, c) => {
-            acc[c.NAME] = { config: c.CONFIG };
+            acc[c.name] = { config: c.config };
             return acc;
         }, {});
 
         configs.editable.reduce((acc, c) => {
-
-            switch (c.NAME) {
+            switch (c.name) {
                 case 'STUDY_AREA_COUNTIES':
-                    acc[c.NAME] = {
-                        config: c.CONFIG.split(',').map(v => v.trim()),
+                    acc[c.name] = {
+                        config: c.config.split(',').map(v => v.trim()),
                         ObjectId: c.ObjectId
                     };
                     break;
-                case c.NAME.startsWith('WRLU_SPEC_') ? c.NAME : false:
+                case c.name.startsWith('WRLU_SPEC_') ? c.name : false:
                     acc['WRLU_SPECS'] = acc['WRLU_SPECS'] || [];
                     acc['WRLU_SPECS'].push({
-                        year: c.NAME.split('_')[2],
-                        config: c.CONFIG.split('|')
+                        year: c.name.split('_')[2],
+                        config: c.config.split('|')
                     });
                     break;
                 default:
-                    acc[c.NAME] = { config: c.CONFIG, ObjectId: c.ObjectId };
+                    acc[c.name] = { config: c.config, ObjectId: c.ObjectId };
                     break;
             }
 

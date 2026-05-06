@@ -2,28 +2,22 @@
     <div class="flex-grow-1">
         <HeroBanner text="Administration"></HeroBanner>
         <div class="container my-5">
-            <div class="row">
+            <div class="row" v-if="portalCredentials">
                 <div class="col-lg-3">
                     <VerticalMenu :links="links">
                         <template v-slot:header>
-                            <button class="btn btn-bright-light btn-block" @click="triggerLogin()" v-if="!portalUser">
-                                Login with ArgGIS Online
-                            </button>
+                            <span class="d-block">Welcome, {{ portalUser.sourceJSON.firstName }}!</span>
+                            <small>({{ portalUser.username }})</small>
 
-                            <div v-else>
-                                <span class="d-block">Welcome, {{ portalUser.sourceJSON.firstName }}!</span>
-                                <small>({{ portalUser.username }})</small>
-
-                                <button class="btn btn-secondary btn-block mt-2">Logout</button>
-                            </div>
+                            <button class="btn btn-secondary btn-block mt-2">Logout</button>
                         </template>
                     </VerticalMenu>
                 </div>
-                <div class="col-lg-9" v-if="portalCredentials">
+                <div class="col-lg-9">
                     <router-view v-slot="{ Component }">
                         <Suspense :timeout="0">
                             <component :is="Component" :credentials="portalCredentials" />
-                            
+
                             <template #fallback>
                                 <div class="align-items-center d-flex justify-content-center mt-5 text-bright">
                                     <strong>Loading...</strong>
@@ -33,6 +27,16 @@
                         </Suspense>
                     </router-view>
                 </div>
+            </div>
+
+            <div v-else>
+                <p>
+                    You need to login to access the administration functionalities.
+                </p>
+
+                <button class="btn btn-bright-light" @click="triggerLogin()" v-if="!portalUser">
+                    Login with ArgGIS Online
+                </button>
             </div>
         </div>
     </div>
@@ -52,6 +56,9 @@ const links = [{
 }, {
     href: '/admin/configurations',
     text: 'Configurations'
+}, {
+    href: '/admin/jobs',
+    text: 'Jobs'
 }];
 
 const [Portal, OAuthInfo, identityManager] = await $arcgis.import([
@@ -73,7 +80,7 @@ async function handleSignedIn() {
     portal.load().then(() => {
         portalUser.value = portal.user;
         portalCredentials.value = portal.credential;
-        console.log(portalCredentials.value);
+        // console.log(portalCredentials.value);
     });
 }
 
@@ -84,4 +91,5 @@ function triggerLogin() {
 await identityManager
     .checkSignInStatus(info.portalUrl + "/sharing")
     .then(() => handleSignedIn())
+    .catch(() => { })
 </script>
