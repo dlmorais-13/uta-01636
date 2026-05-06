@@ -1,64 +1,50 @@
-import os
 from colorama import Fore, Style
 from camel_converter import to_snake
-from arcgis.gis import GIS, Folder, Group, Item, ItemProperties
-from arcgis.features import FeatureLayerCollection, FeatureLayer, Table, Feature
-from typing import cast, Literal
+from arcgis.gis import GIS
+from arcgis.features import FeatureLayerCollection, FeatureLayer, Table, Feature, FeatureSet
+from typing import cast
+from src.settings import settings
 
-from logger import get_logger
-LOGGER = get_logger(__name__)
-
-AGOL_URL = os.environ.get('AGOL_URL')
-AGOL_CLIENT_ID = os.environ.get('AGOL_CLIENT_ID')
-AGOL_CLIENT_SECRET = os.environ.get('AGOL_CLIENT_SECRET')
+import logging
+LOGGER = logging.getLogger(__name__)
 
 
 class AgolAPI:
 
     gis: GIS
-    group: Group
+    config_cache: FeatureSet | None = None
 
-    def __init__(self) -> None:
-        LOGGER.info(f'Authenticating to {AGOL_URL} ... ')
+    def __init__(self, token: str | None = None) -> None:
+        LOGGER.info(f'Authenticating to {settings.agol_url} ... ')
         try:
-            self.gis = GIS(AGOL_URL, client_id=AGOL_CLIENT_ID, profile='default')
-            self.group = self.gis.groups.get(os.environ['AGOL_PROJECT_GROUP_ID'])
+            if token:
+                self.gis = GIS(url=settings.agol_url, token=token)
+            else:
+                self.gis = GIS(url=settings.agol_url, client_id=settings.agol_client_id,
+                               client_secret=settings.agol_client_secret)
+            # self.group = self.gis.groups.get(settings.agol_project_group_id)
             LOGGER.info(f'{Fore.GREEN}✓ Authentication succeed.{Style.RESET_ALL}')
         except Exception as e:
             LOGGER.error(f'{Fore.RED}✕ Authentication failed: {e}{Style.RESET_ALL}')
-            raise RuntimeError(f'Error authenticating to ArcGIS Online at URL {AGOL_URL}') from e
-
-    def item_exists(self, title: str, type: Literal['Feature Service']):
-        search_result = self.group.search(query = f"title:'{title}' AND type:'{type}'")
-        if search_result['total'] > 1:
-            LOGGER.warning(f"More than 1 result returned in search for [title:'{title}' AND type:'{type}']: {search_result['total']}")
-        return search_result['total'] > 0
-    
-    def get_layer_ref_from_name(self, name: str) -> FeatureLayer | None:
-        type = 'Feature Service'
-        search_result = self.group.search(query = f"title:'{name}' AND type:'{type}'")
-        if search_result['total'] > 1:
-            LOGGER.warning(f"More than 1 result returned in search for [title:'{name}' AND type:'{type}']: {search_result['total']}")
-            return None
-        return search_result['results'][0].layers[0]
+            raise RuntimeError(f'Error authenticating to ArcGIS Online at URL {settings.agol_url}') from e
 
     def get_layer_ref(self, layer_id: str) -> FeatureLayer:
         flc: FeatureLayerCollection = FeatureLayerCollection.fromitem(self.gis.content.get(layer_id))
-        return flc.layers[0]
+        return flc.layers[0] if flc else None
 
     def get_table_ref(self, table_id: str) -> Table:
-        return self.gis.content.get(table_id).tables[0]
+        ref = self.gis.content.get(table_id)
+        return ref.tables[0] if ref else None
 
-    def get_folder_ref(self, folder_id: str | None = None) -> Folder:
-        return self.gis.content.folders.get(folder=folder_id if folder_id else os.environ['AGOL_PROJECT_FOLDER'])
-
-    def query(self, layer_id: str, where: str, count: int = 1):
-        LOGGER.info(f'Querying layer "{layer_id}" with condition "{where}" ... ')
+    def query(self, layerIdOrRef: str | FeatureLayer, where: str, count: int = 1, order_by_fields="OBJECTID ASC"):
+        LOGGER.info(f'Querying layer "{layerIdOrRef}" with condition "{where}" ... ')
         try:
-            result = self.get_layer_ref(layer_id).query(
+            ref = layerIdOrRef if not isinstance(layerIdOrRef, str) else self.get_layer_ref(layerIdOrRef)
+            result = ref.query(
                 where=where,
                 return_all_records=False,
-                result_record_count=count
+                result_record_count=count,
+                order_by_fields=order_by_fields
             )
             LOGGER.info(f'{Fore.GREEN}✓ Query succeed.{Style.RESET_ALL}')
             return result
@@ -66,10 +52,11 @@ class AgolAPI:
             LOGGER.error(f'{Fore.RED}✕ Query error: {e}{Style.RESET_ALL}')
             raise RuntimeError('Error querying layer') from e
 
-    def update(self, layer_id: str, feature):
-        LOGGER.info(f'Updating feature {feature.attributes["OBJECTID"]} on layer "{layer_id}" ... ')
+    def update(self, layerIdOrRef: str | FeatureLayer, feature):
+        LOGGER.info(f'Updating feature {feature.attributes["OBJECTID"]} on layer "{layerIdOrRef}" ... ')
         try:
-            result = self.get_layer_ref(layer_id).edit_features(updates=[feature])
+            ref = layerIdOrRef if not isinstance(layerIdOrRef, str) else self.get_layer_ref(layerIdOrRef)
+            result = ref.edit_features(updates=[feature])
             assert isinstance(result, dict)
             if result['updateResults'][0]['success']:
                 LOGGER.info(f'{Fore.GREEN}✓ Update succeed{Style.RESET_ALL}')
@@ -103,24 +90,12 @@ class AgolAPI:
             LOGGER.error(f'{Fore.RED}Error adding features: {e}{Style.RESET_ALL}')
             raise RuntimeError('Error adding features') from e
 
-    def create_feature_layer(self, geojson: str, item_props: ItemProperties) -> Item:
-        # Writing file to be uploaded
-        workdir = os.path.abspath(os.path.join(os.getcwd(), os.environ['WORKDIR']))
-        geojson_path = os.path.join(workdir, 'uploads', f'{to_snake(item_props.title)}.geojson')
-        try:
-            with open(geojson_path, 'w') as file:
-                file.write(geojson)
+    def get_config(self, config_name: str) -> str:
+        if self.config_cache is None:
+            config_ref = self.get_table_ref(settings.agol_config_table_id)
+            self.config_cache = config_ref.query()
 
-            folder_ref: Folder = self.get_folder_ref()
-            item_add_job = folder_ref.add(item_properties=item_props, file=geojson_path)
-            geojson_item = item_add_job.result()
-            geojson_item.sharing.groups.add(os.environ['AGOL_PROJECT_GROUP_ID'])
-            LOGGER.info(f'Created GeoJson: {geojson_item}')
-
-            layer_item: Item = geojson_item.publish()
-            layer_item.sharing.groups.add(os.environ['AGOL_PROJECT_GROUP_ID'])
-
-            return layer_item
-        finally:
-            if os.path.exists(geojson_path):
-                os.unlink(geojson_path)
+        config = next((c for c in self.config_cache.features if c.attributes['NAME'] == config_name), None)
+        if config is None:
+            raise RuntimeError(f'Config not found with name {config_name}')
+        return config.attributes['CONFIG']
