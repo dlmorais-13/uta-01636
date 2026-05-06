@@ -5,12 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File",
+            "name": "Python Debugger: Main",
             "type": "debugpy",
             "request": "launch",
             "console": "integratedTerminal",
-            "module": "${fileBasenameNoExtension}",
+            "module": "src.main",
+            "cwd": "${workspaceFolder}",
+            "args": ["${input:selectMode}"],
             "justMyCode": false
+        }
+    ],
+    "inputs": [
+        {
+            "id": "selectMode",
+            "type": "pickString",
+            "description": "App or Job?",
+            "options": ["app", "job"],
+            "default": "app"
         }
     ]
 }
