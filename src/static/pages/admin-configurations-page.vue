@@ -28,10 +28,6 @@
     </AdminConfigurationInput>
 
     <h2 class="mt-5">Water-related Land Use</h2>
-    <AdminConfigurationInput label="WebService Base URL">
-        <input type="text" class="form-control" id="wrlu-webservice-base-url"
-            v-model="editableConfigs.WRLU_REST_BASE_URL.config" />
-    </AdminConfigurationInput>
     <AdminConfigurationInput label="County Columns">
         <input type="text" class="form-control" id="wrlu-county-columns"
             v-model="editableConfigs.WRLU_COUNTY_COLUMNS.config" />
