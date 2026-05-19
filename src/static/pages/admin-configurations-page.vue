@@ -11,57 +11,7 @@
         </div>
     </AdminConfigurationInput>
 
-    <h2 class="mt-5">ArcGIS Online</h2>
-    <AdminConfigurationInput label="ArcGIS Online URL">
-        <input type="text" class="form-control" id="agol-url" readonly v-model="editableConfigs.agol_url.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="ArcGIS Online Client ID">
-        <input type="text" class="form-control" id="agol-client-id" readonly
-            v-model="editableConfigs.agol_client_id.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="ArcGIS Online Client Secret">
-        <input type="text" class="form-control" id="agol-client-secret" readonly
-            v-model="editableConfigs.agol_client_secret.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="ArcGIS Online Project Name">
-        <input type="text" class="form-control" id="agol-project-name" readonly
-            v-model="editableConfigs.agol_project_name.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="ArcGIS Online Group ID">
-        <input type="text" class="form-control" id="agol-group-id" readonly
-            v-model="editableConfigs.agol_project_group_id.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="ArcGIS Online Default Coordinate System">
-        <input type="text" class="form-control" id="agol-group-id" readonly
-            v-model="editableConfigs.agol_default_crs.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="ArcGIS Online Configuration Table ID">
-        <input type="text" class="form-control" id="agol-group-id" readonly
-            v-model="editableConfigs.agol_config_table_id.config" />
-    </AdminConfigurationInput>
-
-    <h2 class="mt-5">External Layer References</h2>
-    <AdminConfigurationInput label="USA Census Counties">
-        <input type="text" class="form-control" id="layer-usa-census-counties"
-            v-model="editableConfigs.USA_CENSUS_COUNTIES_LAYER_ID.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="SSURGO Map Units">
-        <input type="text" class="form-control" id="layer-ssurgo-mapunits"
-            v-model="editableConfigs.SSURGO_MAPUNITS_LAYER.config" />
-    </AdminConfigurationInput>
-
     <h2 class="mt-5">PRISM</h2>
-    <AdminConfigurationInput label="PRISM Base URL">
-        <input type="text" class="form-control" id="prism-base-url" v-model="editableConfigs.PRISM_BASE_URL.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="PRISM Mesh Base URL">
-        <input type="text" class="form-control" id="prism-mesh-base-url"
-            v-model="editableConfigs.PRISM_MESH_BASE_URL.config" />
-    </AdminConfigurationInput>
-    <AdminConfigurationInput label="PRISM Mesh Default Coordinate System">
-        <input type="text" class="form-control" id="prism-mesh-default-crs"
-            v-model="editableConfigs.PRISM_MESH_CRS.config" />
-    </AdminConfigurationInput>
     <AdminConfigurationInput label="PRISM Default Resolution">
         <div class="form-check form-check-inline" v-for="res in ['800m', '4km']">
             <input class="form-check-input" type="radio" :id="`input-prism-default-resolution-${res}`" :value="res"
@@ -134,12 +84,7 @@ if (props.credentials) {
     if (response.ok) {
         let configs = await response.json();
 
-        originalConfigs.value = configs.envs.reduce((acc, c) => {
-            acc[c.name] = { config: c.config };
-            return acc;
-        }, {});
-
-        configs.editable.reduce((acc, c) => {
+        configs.reduce((acc, c) => {
             switch (c.name) {
                 case 'STUDY_AREA_COUNTIES':
                     acc[c.name] = {

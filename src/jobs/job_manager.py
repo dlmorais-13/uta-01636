@@ -118,7 +118,7 @@ class JobManager():
         LOGGER.info('Starting job manager')
         while (True):
             time.sleep(settings.job_polling_time)
-            LOGGER.debug('Checking for jobs available for execution')
+            LOGGER.info('Checking for jobs available for execution')
             job = self.get_next_job()
             if job is not None:
                 self.run_job(job)

@@ -50,11 +50,12 @@ ADMIN_DATA: dict[str, AdminData] = {
         description='Layer with the parcels in the study area limits.',
         imports=[
             AdminDataImport(
-                id='layer',
-                name='Layer',
+                id='parcels',
+                name='Parcels with historic data',
+                job_name='jobs.create_base_layer.CreateBaseLayer',
                 expected_count=0,
                 type='layer',
-                object_ref_id=settings.agol_study_area_layer_id
+                object_ref_id=settings.agol_base_layer_id
             )
         ]
     )
@@ -99,6 +100,8 @@ def calculate_import_data(agol: AgolAPI, import_data: AdminDataImport):
             elif import_data.expected_count > 0 and import_data.count > 0:
                 import_data.status = 'partially-imported'
             elif import_data.expected_count > 0 and import_data.count == 0:
+                import_data.status = 'not-imported'
+            elif import_data.count == 0:
                 import_data.status = 'not-imported'
             else:
                 import_data.status = 'fully-imported'

@@ -1,19 +1,17 @@
-
 from src.jobs.job import Job
 from src.agol_api import AgolAPI
 from arcgis.features import FeatureSet
-from arcgis.gis import ItemProperties, ItemTypeEnum
 from src.settings import settings
-import logger
+import logging
 
-LOGGER = logger.get_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 class CreateStudyArea(Job):
     
     async def logic(self, params: dict):
         api = AgolAPI()
 
-        usa_census_counties_layer_ref = api.get_layer_ref(api.get_config('USA_CENSUS_COUNTIES_LAYER_ID'))
+        usa_census_counties_layer_ref = api.get_layer_ref(settings.usa_census_counties_layer_id)
         counties = ', '.join(map(lambda c: f"'{c} County'", api.get_config('STUDY_AREA_COUNTIES').split(',')))
         filter = f"STATE_NAME = 'Utah' AND NAME IN ({counties})"
         study_area_featureset: FeatureSet = usa_census_counties_layer_ref.query(

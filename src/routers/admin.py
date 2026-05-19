@@ -21,31 +21,15 @@ class Config(BaseModel):
     config: str
 
 
-class ConfigList(BaseModel):
-    envs: list[Config]
-    editable: list[Config]
-
-
 @router.get("/configurations")
-async def load_configurations(authorization: Annotated[str | None, Header()]) -> ConfigList:
+async def load_configurations(authorization: Annotated[str | None, Header()]) -> list[Config]:
     configTable = agol.get_table_ref(settings.agol_config_table_id)
 
     allConfigs = configTable.query()
-    return {
-        'envs': [
-            {'name': 'agol_url', 'config': settings.agol_url},
-            {'name': 'agol_client_id', 'config': settings.agol_client_id},
-            {'name': 'agol_client_secret', 'config': settings.agol_client_secret},
-            {'name': 'agol_config_table_id', 'config': settings.agol_config_table_id},
-            {'name': 'agol_default_crs', 'config': settings.agol_default_crs},
-            {'name': 'agol_project_group_id', 'config': settings.agol_project_group_id},
-            {'name': 'agol_project_name', 'config': settings.agol_project_name},
-        ],
-        'editable': [{
+    return [{
             'name': c.attributes['NAME'],
             'config': c.attributes['CONFIG']
-        } for c in allConfigs.features]
-    }
+            } for c in allConfigs.features]
 
 
 @router.put("/configurations")

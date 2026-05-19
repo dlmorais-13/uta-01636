@@ -28,4 +28,4 @@ dependencies = [
 dev = ["pytest>=9.0"]
 
 [tool.fastapi]
-entrypoint = "src.main:app"
+entrypoint = "src.webapp:app"
