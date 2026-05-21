@@ -13,11 +13,13 @@ const serviceId = await serviceIdResp.json()
 const [
     FeatureLayer,
     Map,
-    MapView
+    MapView,
+    CustomContent
 ] = await $arcgis.import([
     "@arcgis/core/layers/FeatureLayer.js",
     "@arcgis/core/Map.js",
-    "@arcgis/core/views/MapView.js"
+    "@arcgis/core/views/MapView.js",
+    "@arcgis/core/popup/content/CustomContent.js"
 ]);
 
 onMounted(async () => {
@@ -38,8 +40,87 @@ onMounted(async () => {
 
     await viewElement.viewOnReady(); // Wait for the properties to be ready.
 
+    const tableLayer = new FeatureLayer({
+        portalItem: { id: serviceId },
+        layerId: 1
+    });
+
+    let historyDataWidget = new CustomContent({
+        outFields: ["*"],
+        creator: async (event) => {
+            const parcel_key = event.graphic.attributes.parcel_key;
+            
+            const queryParams = tableLayer.createQuery();
+            queryParams.where = `parcel_key = '${parcel_key}'`;
+            const queryResult = await tableLayer.queryFeatures(queryParams);
+            const historyFeatures = queryResult.features.sort(
+                (a, b) => b.attributes.survey_year - a.attributes.survey_year
+            );
+            
+            const originalFeatureQueryResponse = await featureLayer.queryFeatures({
+                where: `OBJECTID = ${event.graphic.attributes.OBJECTID}`,
+                outFields: ["*"],
+                returnGeometry: true
+            });
+            const originalFeature = originalFeatureQueryResponse.features[0];
+            const parcelArea = originalFeature.attributes.Shape__Area;
+            
+            return `<div style="width: 100%; font-size: 12px;">
+                
+                <h3 style="font-size: 20px; color: #4A4A4A; font-weight: 400; margin-bottom: .25rem;">
+                    Land Use History
+                </h3>
+                
+                <table style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="border-bottom: 1px solid black; padding: 6px 8px;">
+                                Survey Year
+                                <br />
+                                Area (m²) / %
+                            </th>
+                            <th style="border-bottom: 1px solid black; padding: 6px 8px;">
+                                Land Use
+                                <br />
+                                Irrigation Type
+                                <br />
+                                Crop
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${historyFeatures.map((feature, idx) => `
+                            <tr style="background-color: ${idx % 2 === 0 ? '#f2f2f2' : '#ffffff'}">
+                                <td style="padding: 6px 8px;">
+                                    <strong>${feature.attributes.survey_year}</strong>
+                                    <br />
+                                    ${Math.min(Number(feature.attributes.area), parcelArea).toLocaleString('en-US', {
+                                        minimumFractionDigits: 2, 
+                                        maximumFractionDigits: 2
+                                    })}
+                                    / ${Math.min(100, Number(feature.attributes.area) / parcelArea * 100).toLocaleString('en-US', {
+                                        minimumFractionDigits: 2, 
+                                        maximumFractionDigits: 2
+                                    })}%
+                                </td>
+                                <td style="padding: 6px 8px;">
+                                    ${feature.attributes.land_use} (${feature.attributes.land_use_code})
+                                    <br />
+                                    ${feature.attributes.irr_type}
+                                    ${feature.attributes.crop ? '<br />' + feature.attributes.crop : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>`
+        }
+    });
+    
     const featureLayer = new FeatureLayer({ 
         portalItem: { id: serviceId },
+        minScale: 50000,
+        maxScale: 1000,
         popupEnabled: true,
         popupTemplate: {
             title: "Parcel {OBJECTID}",
@@ -79,7 +160,8 @@ onMounted(async () => {
                             }
                         }
                     ]
-                }
+                },
+                historyDataWidget
             ],
         }
     });
