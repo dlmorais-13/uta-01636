@@ -229,7 +229,7 @@ class CreateBaseLayer(Job):
             }
         ])
 
-    def build_features_to_save(layer: GeoDataFrame, county: str, wrlu_specs: dict, most_recent_year: int):
+    def build_features_to_save(self, layer: GeoDataFrame, county: str, wrlu_specs: dict, most_recent_year: int):
         [_, *most_recent_columns] = wrlu_specs[f'WRLU_SPEC_{most_recent_year}'].split('|')
         basin_column_name = [
             col_spec.split(':')[0]
@@ -239,13 +239,20 @@ class CreateBaseLayer(Job):
 
         layer_projected = layer.to_crs(epsg=4326)
 
+        # Get the name of the county with capitalized letters.
+        county_name = [
+            c_name
+            for c_name in self.api.get_config('STUDY_AREA_COUNTIES').split(',')
+            if c_name.lower() == county
+        ][0]
+
         features_to_add = []
         for _, row in layer_projected.iterrows():
             feature_attrs = row.drop('geometry').to_dict()
 
             new_feat_attr = {
                 'parcel_key': int(feature_attrs['OBJECTID']),
-                'county': county,
+                'county': county_name,
                 'basin': feature_attrs[basin_column_name],
                 'map_unit_data': feature_attrs['map_unit_data']
             }
@@ -272,7 +279,7 @@ class CreateBaseLayer(Job):
 
         return features_to_add
 
-    def build_history_to_save(history: list, wrlu_specs: dict):
+    def build_history_to_save(self, history: list, wrlu_specs: dict):
         history_to_add = []
         for h in history:
             # Get the year of the history item for the column names.
