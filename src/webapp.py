@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.requests import Request
-from src.routers import admin
+from src.routers import admin, parcels
 
 STATIC_ROUTES = ['/', '/map', '/admin', '/admin/data-import', '/admin/simulations', '/admin/configurations']
 
@@ -25,6 +25,7 @@ async def serve_spa(request: Request, call_next):
 
 @app.get("/api")
 def read_root():
-    return {"Hello": "World"}
+    return {"v": "0.0.1"}
 
 app.include_router(admin.router)
+app.include_router(parcels.router)

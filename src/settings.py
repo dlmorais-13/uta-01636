@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     agol_queue_feature_id: str
     agol_study_area_layer_id: str
     agol_base_layer_id: str
+    agol_base_layer_view_id: str
     ssurgo_mapunits_layer_id: str
     usa_census_counties_layer_id: str
     prism_base_url: str

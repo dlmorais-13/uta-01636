@@ -1,19 +1,28 @@
 <template>
-    <arcgis-map basemap="hybrid" class="h-auto">
+    <arcgis-map basemap="streets-vector" class="h-auto w-100" popup-disabled>
         <arcgis-zoom slot="top-left"></arcgis-zoom>
-        <!-- <arcgis-layer-list slot="top-right"></arcgis-layer-list>
-        <arcgis-legend slot="bottom-left"></arcgis-legend> -->
+        <arcgis-popup slot="popup" dock-enabled="false"></arcgis-popup>
     </arcgis-map>
 </template>
 
 <script setup>
 import { onMounted } from 'vue'
 
-onMounted(async () => {
-    console.log('map.vue : onMounted');
+const serviceIdResp = await fetch('/api/parcels/config/view_service_id')
+const serviceId = await serviceIdResp.json()
+const [
+    FeatureLayer,
+    Map,
+    MapView
+] = await $arcgis.import([
+    "@arcgis/core/layers/FeatureLayer.js",
+    "@arcgis/core/Map.js",
+    "@arcgis/core/views/MapView.js"
+]);
 
-    const FeatureLayer = await $arcgis.import("@arcgis/core/layers/FeatureLayer.js");
+onMounted(async () => {
     const viewElement = document.querySelector("arcgis-map");
+    const popupComponent = document.querySelector("arcgis-popup");
 
     viewElement.addEventListener("arcgisViewMouseWheel", (event) => {
         // Only allow zooming if the Ctrl key is held down
@@ -22,10 +31,57 @@ onMounted(async () => {
         }
     });
 
+    viewElement.addEventListener("arcgisViewClick", async (event) => {
+        await popupComponent.fetchFeatures(event.detail);
+        popupComponent.open = true;
+    });
+
     await viewElement.viewOnReady(); // Wait for the properties to be ready.
 
-    const featureLayer = new FeatureLayer({
-        url: "https://services1.arcgis.com/WTeo28TIuKuIFAJu/arcgis/rest/services/UTA01636_Study_Area_view/FeatureServer/0",
+    const featureLayer = new FeatureLayer({ 
+        portalItem: { id: serviceId },
+        popupEnabled: true,
+        popupTemplate: {
+            title: "Parcel {OBJECTID}",
+            expressionInfos: [
+                {
+                    name: 'AreaAcres',
+                    title: 'Acres',
+                    expression: '$feature.Shape__Area / 4046.865'
+                }
+            ],
+            content: [
+                {
+                    type: 'text',
+                    text: 'Parcel located in {County} County and part of {Basin} Basin'
+                },
+                {
+                    type: 'fields',
+                    title: 'Area',
+                    description: 'Parcel Area in square meters (m²) and acres',
+                    fieldInfos: [
+                        {
+                            fieldName: "Shape__Area",
+                            label: "Square meters (m²)",
+                            fieldFormat: {
+                                type: "number",
+                                useGrouping: "always",
+                                maximumFractionDigits: 2
+                            }
+                        },
+                        {
+                            fieldName: "expression/AreaAcres",
+                            label: "Acres",
+                            fieldFormat: {
+                                type: "number",
+                                useGrouping: "always",
+                                maximumFractionDigits: 2
+                            }
+                        }
+                    ]
+                }
+            ],
+        }
     });
 
     viewElement.map.add(featureLayer); // Use the map property to add the layer.

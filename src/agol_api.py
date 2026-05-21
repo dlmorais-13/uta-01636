@@ -132,3 +132,14 @@ class AgolAPI:
             for c in self.config_cache.features
             if c.attributes['NAME'].startswith(prefix)
         }
+
+
+class _AgolAPI_Injector:
+    api: AgolAPI | None = None
+
+    def __call__(self):
+        if self.api is None:
+            self.api = AgolAPI()
+        return self.api
+    
+AgolAPI_Injector = _AgolAPI_Injector()
