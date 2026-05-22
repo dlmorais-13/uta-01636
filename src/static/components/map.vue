@@ -1,7 +1,7 @@
 <template>
     <arcgis-map basemap="streets-vector" class="h-auto w-100" popup-disabled>
         <arcgis-zoom slot="top-left"></arcgis-zoom>
-        <arcgis-popup slot="popup" dock-enabled="false"></arcgis-popup>
+        <arcgis-popup slot="popup"></arcgis-popup>
     </arcgis-map>
 </template>
 
@@ -25,6 +25,12 @@ const [
 onMounted(async () => {
     const viewElement = document.querySelector("arcgis-map");
     const popupComponent = document.querySelector("arcgis-popup");
+    popupComponent.dockEnabled = true;
+    popupComponent.dockOptions = {
+        buttonEnabled: false,
+        breakpoint: false,
+        position: 'bottom-left'
+    }
 
     viewElement.addEventListener("arcgisViewMouseWheel", (event) => {
         // Only allow zooming if the Ctrl key is held down
