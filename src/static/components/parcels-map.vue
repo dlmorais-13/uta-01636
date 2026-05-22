@@ -213,7 +213,7 @@ const tableLayer = new FeatureLayer({
 const featureLayer = new FeatureLayer({ 
     portalItem: { id: serviceId },
     outFields: ["*"],
-    minScale: 50000,
+    minScale: 500000,
     maxScale: 1000,
     popupEnabled: true,
     popupTemplate: {
