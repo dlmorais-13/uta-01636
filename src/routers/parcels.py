@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from typing import Annotated
 
 from src.settings import settings
-from src.agol_api import AgolAPI, AgolAPI_Injector
+from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 
 
 router = APIRouter(

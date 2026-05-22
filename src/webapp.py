@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.requests import Request
-from src.routers import admin, parcels
+from src.routers import admin, parcels, soils
 
 STATIC_ROUTES = ['/', '/map', '/admin', '/admin/data-import', '/admin/simulations', '/admin/configurations']
 
@@ -29,3 +29,4 @@ def read_root():
 
 app.include_router(admin.router)
 app.include_router(parcels.router)
+app.include_router(soils.router)

@@ -1,4 +1,4 @@
-from src.agol_api import AgolAPI
+from src.apis.agol_api import AgolAPI
 from arcgis.features import FeatureLayer, FeatureSet, Feature
 from src.settings import settings
 from datetime import datetime, timedelta

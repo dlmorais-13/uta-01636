@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, Literal
 from src.settings import settings
-from src.agol_api import AgolAPI
+from src.apis.agol_api import AgolAPI
 from jobs.job_manager import JobManager, JobStatus
 import logging
 

@@ -5,7 +5,7 @@ from pathlib import Path
 from arcgis.features import FeatureLayer, FeatureSet
 
 from src.settings import settings
-from src.agol_api import AgolAPI
+from src.apis.agol_api import AgolAPI
 from src.utils.geopandas_utils import GeoPandasUtils
 
 LOGGER = logging.getLogger(__name__)

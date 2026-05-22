@@ -1,5 +1,5 @@
 from src.jobs.job import Job
-from src.agol_api import AgolAPI
+from src.apis.agol_api import AgolAPI
 from arcgis.features import FeatureSet
 from src.settings import settings
 import logging

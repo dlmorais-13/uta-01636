@@ -3,7 +3,7 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == 'job':
         from src.jobs.job_manager import JobManager
-        from src.agol_api import AgolAPI
+        from src.apis.agol_api import AgolAPI
         jobManager = JobManager(AgolAPI())
         jobManager.run()
     else:
