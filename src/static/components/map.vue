@@ -54,7 +54,12 @@ onMounted(async () => {
             queryParams.where = `parcel_key = '${parcel_key}'`;
             const queryResult = await tableLayer.queryFeatures(queryParams);
             const historyFeatures = queryResult.features.sort(
-                (a, b) => b.attributes.survey_year - a.attributes.survey_year
+                (a, b) => {
+                    if (a.attributes.survey_year === b.attributes.survey_year) {
+                        return b.attributes.area - a.attributes.area;
+                    }
+                    return b.attributes.survey_year - a.attributes.survey_year;
+                }
             );
             
             const originalFeatureQueryResponse = await featureLayer.queryFeatures({
