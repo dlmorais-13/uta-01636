@@ -8,6 +8,13 @@
 <script setup>
 import { onMounted } from 'vue'
 
+const props = defineProps({
+    onParcelSelected: {
+        type: Function,
+        default: () => console.log('on-parcel-selected callback not defined.')
+    }
+});
+
 const serviceIdResp = await fetch('/api/parcels/config/view_service_id')
 const serviceId = await serviceIdResp.json()
 const [
@@ -276,19 +283,17 @@ onMounted(async () => {
     });
 
     viewElement.addEventListener("arcgisViewClick", async (event) => {
-        await popupComponent.fetchFeatures(event.detail);
-        popupComponent.open = true;
-    });
-
-    watch(
-        () => {
-            console.log('watch features');
-            return popupComponent.features;
-        }, 
-        features => {
-            console.log(features);
-            // popupComponent.open = features.length > 0;
+        console.log(event);
+        const hitTestResult = await viewElement.hitTest(event.detail.screenPoint, {
+            include: [featureLayer]
         });
+        if (hitTestResult.results.length > 0) {
+            props.onParcelSelected(hitTestResult.results[0].graphic.attributes);
+            await popupComponent.fetchFeatures(event.detail);
+            popupComponent.open = true;
+        }
+
+    });
 
     await viewElement.viewOnReady(); // Wait for the properties to be ready.
 
@@ -296,9 +301,14 @@ onMounted(async () => {
     await viewElement.whenLayerView(featureLayer); // Wait for the layer to be usable.
 
     // Zoom to the layer's full extent and customize the animation.
-    await viewElement.goTo(featureLayer.fullExtent, { animate: false, duration: 0 });
+    // await viewElement.goTo(featureLayer.fullExtent, { animate: false, duration: 0 });
+    await viewElement.goTo([-111.857701, 41.734548]); viewElement.zoom = 14;
 
     // Constrain navigation to the layer's full extent.
     viewElement.constraints = { geometry: featureLayer.fullExtent };
+
+    popupComponent.addEventListener('arcgisClose', () => {
+        props.onParcelSelected(null);
+    });
 });
 </script>
