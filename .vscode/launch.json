@@ -53,7 +53,10 @@
             "console": "integratedTerminal",
             "module": "src.main",
             "cwd": "${workspaceFolder}",
-            "args": ["job"],
+            "env": {
+                "JOB_MANAGER_ID": "1",
+                "JOB_POLLING_TIME": "5"
+            },
             "justMyCode": false,
             "autoReload": {
                 "enable": true,

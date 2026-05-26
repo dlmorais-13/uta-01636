@@ -428,6 +428,7 @@ ul.social-list li a:hover {
 	}*/
     #fat-footer ul.social-list {
         justify-content: flex-start;
+        font-size: 2em;
     }
 }
 </style>

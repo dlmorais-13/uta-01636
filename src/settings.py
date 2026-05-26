@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -18,9 +19,8 @@ class Settings(BaseSettings):
     prism_base_url: str
     prism_mesh_base_url: str
     prism_mesh_crs: str
-    job_manager_id: int
-    job_manager_count: int
-    job_polling_time: int
+    job_manager_id: Optional[int] = None
+    job_polling_time: Optional[int] = None
     workdir: str
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

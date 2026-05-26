@@ -194,6 +194,14 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     font-size: 80%;
 }
 
+.text-shadow {
+    /* -webkit-text-stroke: 1px var(--usu-black-dark); */
+    text-shadow: 2px 2px 3px var(--usu-black-dark),
+        2px -2px 3px var(--usu-black-dark),
+        -2px -2px 3px var(--usu-black-dark),
+        -2px 2px 3px var(--usu-black-dark);
+}
+
 .accordion-enter-active,
 .accordion-leave-active {
   transition: all 0.2s linear;
