@@ -9,5 +9,3 @@ RUN pip install --no-cache-dir --upgrade -r /code/pip-packages.txt
 COPY ./src /code/src
 
 CMD ["python", "-m", "src.main"]
-
-LABEL org.opencontainers.image.source="https://github.com/dlmorais-13/uta-01636.git"
