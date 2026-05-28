@@ -94,7 +94,7 @@ class CreateBaseLayer(Job):
         if not self.county_geojson_exists(county):
             [service_id, *columns] = wrlu_specs[f'WRLU_SPEC_{year}'].split('|')
 
-            geojson = WaterRelatedLandUseUtils.download_service_geojson(service_id, county)
+            geojson = WaterRelatedLandUseUtils.download_service_geojson(self.api, service_id, county)
             LOGGER.info(f'Retrieved GeoJSON for WRLU {year} - {county}.')
 
             wrlu_columns = {k: v for col in columns for k, v in [col.split(':', 1)]}
@@ -140,12 +140,13 @@ class CreateBaseLayer(Job):
 
     def calculate_county_parcels_history(self, county: str, county_base_gdf: GeoDataFrame, wrlu_specs):
         history = []
+        parcel_areas = county_base_gdf.set_index('OBJECTID').geometry.area
 
         for wrlu_year, wrlu_spec in wrlu_specs.items():
             [service_id, *columns] = wrlu_spec.split('|')
             year = wrlu_year.split('_')[-1]
 
-            geojson = WaterRelatedLandUseUtils.download_service_geojson(service_id, county)
+            geojson = WaterRelatedLandUseUtils.download_service_geojson(self.api, service_id, county)
             LOGGER.info(f'Retrieved GeoJSON for WRLU {year} - {county}.')
 
             wrlu_columns = {k: v for col in columns for k, v in [col.split(':', 1)]}
@@ -194,8 +195,9 @@ class CreateBaseLayer(Job):
                 .agg(agg_rules)
             )
 
-            # Filter only features with area > 0
-            joined_gdf = joined_gdf[joined_gdf['intersection_area'] > 0]
+            # Filter only features with area > 1% of the total area for the corresponding parcel
+            total_parcel_areas = joined_gdf['OBJECTID'].map(parcel_areas)
+            joined_gdf = joined_gdf[joined_gdf['intersection_area'] > total_parcel_areas * 0.01]
 
             LOGGER.info(f'Joined base layer with {year} resulting in {len(joined_gdf)} features.')
             for idx, row in joined_gdf.iterrows():
@@ -384,6 +386,8 @@ class CreateBaseLayer(Job):
 if __name__ == '__main__':
     import asyncio
     asyncio.run(CreateBaseLayer().logic({
+        # 'delete_all': True,
         'delete_all': False,
-        'batch_size': 200
+        'batch_size': 200,
+        # 'parcel_id': 10239
     }))
