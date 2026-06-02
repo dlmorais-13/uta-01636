@@ -19,6 +19,7 @@ from src.utils.water_related_land_use_utils import WaterRelatedLandUseUtils
 
 
 LOGGER = logging.getLogger(__name__)
+GEOJSON_PATH = os.path.join(settings.workdir, 'geojson')
 
 
 class CreateBaseLayer(Job):
@@ -34,14 +35,18 @@ class CreateBaseLayer(Job):
         base_layer_ref: FeatureLayer = self.api.get_layer_ref(settings.agol_base_layer_id)
         base_table_ref: Table = self.api.get_table_ref(settings.agol_base_layer_id)
 
-        delete_all: bool = params['delete_all']
-        if delete_all:
+        delete_data: bool = params['delete_data'] if 'delete_data' in params else False
+        if delete_data:
             base_layer_ref.delete_features(where="1=1")
             base_table_ref.delete_features(where="1=1")
-            for county in lower_case_counties:
-                geojson_path = self.get_county_geojson_path(county)
-                if Path(geojson_path).exists():
-                    Path(geojson_path).unlink()
+
+        delete_county_json: bool = params['delete_county_json'] if 'delete_county_json' in params else False
+        if delete_county_json:
+            [p.unlink() for p in Path(GEOJSON_PATH).glob('base_layer_*.geojson')]
+
+        delete_soils_json: bool = params['delete_soils_json'] if 'delete_soils_json' in params else False
+        if delete_soils_json:
+            [p.unlink() for p in Path(GEOJSON_PATH).glob('soils_*.geojson')]
 
         # Get the most recent year from the specs
         most_recent_year = [
@@ -54,8 +59,7 @@ class CreateBaseLayer(Job):
         for county in lower_case_counties:
             LOGGER.info(f'Processing county {county}')
 
-            self.build_county_geojson(county, most_recent_year, wrlu_specs,
-                                      params['parcel_id'] if 'parcel_id' in params else None)
+            self.build_county_geojson(county, most_recent_year, wrlu_specs)
             geojson_path = self.get_county_geojson_path(county)
 
             # Get the last feature added to the base_layer.
@@ -81,16 +85,21 @@ class CreateBaseLayer(Job):
                 if not len(county_base_gdf):
                     break
 
-                # Drop all the features with ID < last_feature_key
-                county_base_gdf = county_base_gdf[county_base_gdf['OBJECTID'] > last_feature_key]
+                # If processing only one feature, keep only it, else check the last added feature.
+                if 'parcel_id' in params:
+                    county_base_gdf = county_base_gdf[county_base_gdf['OBJECTID'].eq(params['parcel_id'])]
+                else:
+                    # Drop all the features with ID < last_feature_key
+                    county_base_gdf = county_base_gdf[county_base_gdf['OBJECTID'] > last_feature_key]
 
                 counter += 1
                 if len(county_base_gdf):
                     county_base_gdf = county_base_gdf.to_crs(epsg=3857)
                     history = self.calculate_county_parcels_history(county, county_base_gdf, wrlu_specs)
-                    self.save_data(county_base_gdf, history, wrlu_specs, county, most_recent_year)
+                    self.save_data(county_base_gdf, history, wrlu_specs, county, most_recent_year,
+                                   params['parcel_id'] if 'parcel_id' in params else None)
 
-    def build_county_geojson(self, county: str, year: int, wrlu_specs, parcel_id: int = None):
+    def build_county_geojson(self, county: str, year: int, wrlu_specs):
         if not self.county_geojson_exists(county):
             [service_id, *columns] = wrlu_specs[f'WRLU_SPEC_{year}'].split('|')
 
@@ -104,11 +113,6 @@ class CreateBaseLayer(Job):
             county_base_gdf = gpd.read_file(geojson, columns=list(wrlu_columns.keys()))
             LOGGER.info(f'WRLU {year} - {county} size: {len(county_base_gdf)}')
             gc.collect()
-
-            # Filter only one object ID
-            if parcel_id:
-                county_base_gdf = county_base_gdf[county_base_gdf['OBJECTID'].eq(parcel_id)]
-                gc.collect()
 
             # Project to 3857
             county_base_gdf = county_base_gdf.to_crs(epsg=3857)
@@ -217,19 +221,25 @@ class CreateBaseLayer(Job):
         with open(self.get_county_geojson_path(county), 'w') as file:
             file.write(gdf.to_json())
 
-    def save_data(self, layer: GeoDataFrame, history: list, wrlu_specs: dict, county: str, most_recent_year: int):
+    def save_data(self, layer: GeoDataFrame, history: list, wrlu_specs: dict, county: str, most_recent_year: int, parcel_id: int | None = None):
         features_to_add = self.build_features_to_save(layer, county, wrlu_specs, most_recent_year)
         history_to_add = self.build_history_to_save(history, wrlu_specs)
-        self.api.add_feature_collection(settings.agol_base_layer_id, [
-            {
-                "id": 0,
-                "adds": features_to_add
-            },
-            {
-                "id": 1,
-                "adds": history_to_add
-            }
-        ])
+
+        if parcel_id is None:
+            self.api.add_feature_collection(settings.agol_base_layer_id, [
+                {
+                    "id": 0,
+                    "adds": features_to_add
+                },
+                {
+                    "id": 1,
+                    "adds": history_to_add
+                }
+            ])
+        else:
+            # If there is a parcel defined, just print for debugging.
+            print(features_to_add)
+            print(history_to_add)
 
     def build_features_to_save(self, layer: GeoDataFrame, county: str, wrlu_specs: dict, most_recent_year: int):
         [_, *most_recent_columns] = wrlu_specs[f'WRLU_SPEC_{most_recent_year}'].split('|')
@@ -350,7 +360,7 @@ class CreateBaseLayer(Job):
         path = Path(soils_geojson_path)
 
         if path.exists():
-            gdf = gpd.read_file(soils_geojson_path)
+            return gpd.GeoDataFrame.from_features(json.load(open(soils_geojson_path))).set_crs(3857)
         else:
             soils_ref = self.api.get_layer_ref(settings.ssurgo_mapunits_layer_id)
             study_area_ref = self.api.get_layer_ref(settings.agol_study_area_layer_id)
@@ -378,16 +388,15 @@ class CreateBaseLayer(Job):
 
             with open(soils_geojson_path, 'w') as file:
                 file.write(geojson)
-            gdf = gpd.GeoDataFrame.from_features(json.loads(geojson))
-
-        return gdf.set_crs(3857) if not gdf.crs else gdf.to_crs(3857)
+            return gpd.GeoDataFrame.from_features(json.loads(geojson)).set_crs(3857)
 
 
 if __name__ == '__main__':
     import asyncio
     asyncio.run(CreateBaseLayer().logic({
-        # 'delete_all': True,
-        'delete_all': False,
         'batch_size': 200,
+        # 'delete_data': False,
+        # 'delete_county_json': True,
+        # 'delete_soils_json': False,
         # 'parcel_id': 10239
     }))
