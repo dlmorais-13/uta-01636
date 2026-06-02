@@ -150,6 +150,9 @@ let soilDataWidget = new CustomContent({
                                 <th style="border-bottom: 1px solid black; padding: 6px 8px;">
                                     Area (m²) / %
                                 </th>
+                                <th style="border-bottom: 1px solid black; padding: 6px 8px; width: 39%;">
+                                    Potential Crop Yields (per acre)
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -167,6 +170,14 @@ let soilDataWidget = new CustomContent({
                                             minimumFractionDigits: 2, 
                                             maximumFractionDigits: 2
                                         })}%
+                                    </td>
+                                    <td style="padding: 6px 8px;">
+                                        ${soils
+                                            .find(soil => `${soil.mukey}` === s.id)
+                                            .crop_yield
+                                            .map(scy => `<div>${scy.cropname}: ${scy.irryield_r} ${scy.yldunits}</div>`)
+                                            .join('')
+                                        }
                                     </td>
                                 </tr>
                             `).join('')}
