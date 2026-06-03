@@ -320,7 +320,7 @@ class CreateBaseLayer(Job):
                         survey_year = h[f'{year}_{c_from}']
 
                     case 'irr_type':
-                        irr_type = h[f'{year}_{c_from}'] if h[f'{year}_{c_from}'] else ''
+                        irr_type = self.transform_irr_type(h[f'{year}_{c_from}'] if h[f'{year}_{c_from}'] else '')
 
                     case 'land_use':
                         if c_from == 'DESCRIPTIO':
@@ -354,6 +354,21 @@ class CreateBaseLayer(Job):
         history_to_add = [json.loads(s) for s in {json.dumps(d, sort_keys=True) for d in history_to_add}]
 
         return history_to_add
+
+    def transform_irr_type(self, irr_type: str):
+        match irr_type:
+            case 'D' | 'Drip':
+                return 'Drip'
+            case 'F' | 'Flood':
+                return 'Flood'
+            case 'S' | 'Sprinkler':
+                return 'Sprinkler'
+            case 'SubIR' | 'Sub-irrigated':
+                return 'Sub-irrigated'
+            case 'IR':
+                return 'Irrigated'
+            case _:
+                return 'Unknown'
 
     def get_soils_gdf(self, county: str):
         soils_geojson_path = os.path.join(settings.workdir, 'geojson', f'soils_{county.replace(" ", "-")}.geojson')
@@ -395,8 +410,8 @@ if __name__ == '__main__':
     import asyncio
     asyncio.run(CreateBaseLayer().logic({
         'batch_size': 200,
-        # 'delete_data': False,
-        # 'delete_county_json': True,
-        # 'delete_soils_json': False,
+        'delete_data': True,
+        'delete_county_json': True,
+        'delete_soils_json': False,
         # 'parcel_id': 10239
     }))
