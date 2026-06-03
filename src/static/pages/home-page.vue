@@ -43,10 +43,10 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import UsuCard from '../components/usu-card.vue';
 
-const _tmpTextAboutSystem = window.LoremIpsum.loremIpsum({ count: 3, units: 'paragraphs' });
+const _tmpTextAboutSystem = LoremIpsum.loremIpsum({ count: 3, units: 'paragraphs' });
 </script>
 
 <style scoped>
