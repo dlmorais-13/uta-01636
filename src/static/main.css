@@ -1,4 +1,4 @@
-html {
+:root {
     --usu-aggie-blue: #0F2439;
     --usu-white: #FFFFFF;
     --usu-blue: #384660;
@@ -272,4 +272,13 @@ svg:not(:host).svg-inline--fa, svg:not(:root).svg-inline--fa {
 /** Backgrounds */
 .bg-info {
     background-color: var(--usu-info) !important;
+}
+
+/** Inputs */
+select:has(option[value=""]:checked) {
+    color: var(--usu-gray-dark) !important;
+}
+
+select option {
+    color: initial !important;
 }

@@ -31,8 +31,12 @@ const router = createRouter({
       component: () => loadModule('/pages/home-page.vue', options)
     },
     {
-      path: '/map',
-      component: () => loadModule('/pages/map-page.vue', options)
+      path: '/parcels',
+      component: () => loadModule('/pages/parcels-page.vue', options)
+    },
+    {
+      path: '/studies',
+      component: () => loadModule('/pages/studies-page.vue', options)
     },
     {
       path: '/admin',

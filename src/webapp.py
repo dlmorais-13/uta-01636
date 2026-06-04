@@ -5,9 +5,11 @@ from fastapi.responses import FileResponse
 from fastapi.requests import Request
 from src.routers import admin, parcels, soils
 
-STATIC_ROUTES = ['/', '/map', '/admin', '/admin/data-import', '/admin/simulations', '/admin/configurations']
+STATIC_ROUTES = ['/', '/parcels', '/studies', '/admin',
+                 '/admin/data-import', '/admin/simulations', '/admin/configurations']
 
 app = FastAPI(debug=True)
+
 
 @app.middleware("http")
 async def serve_spa(request: Request, call_next):
@@ -23,9 +25,11 @@ async def serve_spa(request: Request, call_next):
     response = await call_next(request)
     return response
 
+
 @app.get("/api")
 def read_root():
     return {"v": "0.0.1"}
+
 
 app.include_router(admin.router)
 app.include_router(parcels.router)

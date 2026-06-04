@@ -50,11 +50,14 @@
                         <router-link class="nav-link" to="/">Home</router-link>
                     </li>
                     <li class="nav-item">
-                        <router-link class="nav-link" to="/map">Map</router-link>
+                        <router-link class="nav-link" to="/parcels">Parcels</router-link>
                     </li>
                     <li class="nav-item">
-                        <router-link class="nav-link" to="/admin">Admin</router-link>
+                        <router-link class="nav-link" to="/studies">Studies</router-link>
                     </li>
+                    <!-- <li class="nav-item">
+                        <router-link class="nav-link" to="/admin">Admin</router-link>
+                    </li> -->
                 </ul>
                 <ul class="navbar-nav navbar-global py-3">
                     <li class="nav-item dropdown dropdown-hover">
