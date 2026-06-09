@@ -245,16 +245,28 @@ svg:not(:host).svg-inline--fa, svg:not(:root).svg-inline--fa {
 
 /** Buttons */
 .btn-bright-light {
-	background: var(--usu-bright-light);
 	color: var(--usu-white);
+	background: var(--usu-bright-light);
 	border-color: var(--usu-bright-light);
 	font-size: 1.167rem;
 	font-weight: bold;
 }
 .btn-bright-light:hover, .btn-bright-light:focus {
+	color: var(--usu-white);
 	background: var(--usu-bright-light-hover);
 	border-color: var(--usu-bright-light-hover);
-	color: var(--usu-white);
+}
+
+.btn-primary {
+    color: var(--usu-white);
+    background: var(--usu-bright-light);
+    border-color: var(--usu-bright-light);
+}
+
+.btn-primary:hover {
+    color: var(--usu-white);
+    background: var(--usu-bright-light-hover);
+	border-color: var(--usu-bright-light-hover);
 }
 
 .btn-info {
