@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from pydantic import BaseModel
 from src.settings import settings
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
-from src.model.admin_data_points import get_data_point, get_import_data, AdminData, ADMIN_DATA
+from src.utils.admin_data_points import get_data_point, get_import_data, AdminData, ADMIN_DATA
 from src.jobs.job_manager import JobManager
 import logging
 

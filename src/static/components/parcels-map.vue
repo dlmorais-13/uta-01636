@@ -235,7 +235,7 @@ const featureLayer = new FeatureLayer({
     maxScale: 1000,
     popupEnabled: true,
     popupTemplate: {
-        title: "Parcel {OBJECTID}",
+        title: "Parcel {parcel_key}",
         expressionInfos: [
             {
                 name: 'AreaAcres',

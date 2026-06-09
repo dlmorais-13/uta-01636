@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     job_manager_id: Optional[int] = None
     job_polling_time: Optional[int] = None
     workdir: str
+    daycent_basedir: str
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
