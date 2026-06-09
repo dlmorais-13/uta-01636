@@ -7,6 +7,4 @@ __pycache__/
 *.egg-info/
 arcgis_poc/
 sample/
-DDcentEVI_rev491
-DDlist100_rev491
 stack.yaml
