@@ -12,6 +12,7 @@ class AdminDataImport(BaseModel):
     id: str
     name: str
     object_ref_id: str
+    table_layer_name: Optional[str] = None
     type: Literal['layer', 'table']
     expected_count: int
     count: Optional[int] = None
@@ -19,6 +20,7 @@ class AdminDataImport(BaseModel):
     url: Optional[str] = None
     status: Optional[str] = None
     job_name: Optional[str] = None
+    job_params: Optional[dict] = None
 
 
 class AdminData(BaseModel):
@@ -56,6 +58,33 @@ ADMIN_DATA: dict[str, AdminData] = {
                 expected_count=0,
                 type='layer',
                 object_ref_id=settings.agol_base_layer_id
+            )
+        ]
+    ),
+    'prism-mesh': AdminData(
+        id='prism-mesh',
+        name='PRISM Mesh',
+        description='Feature Layer Set with the meshes from PRISM.',
+        imports=[
+            AdminDataImport(
+                id='prism-mesh-800m',
+                name='PRISM Mesh 800m',
+                job_name='jobs.create_prism_mesh.CreatePrismMesh',
+                expected_count=99411,
+                type='layer',
+                object_ref_id=settings.agol_prism_mesh_layer_id,
+                table_layer_name='800m',
+                job_params={ 'resolution': '800m', 'delete': True }
+            ),
+            AdminDataImport(
+                id='prism-mesh-4km',
+                name='PRISM Mesh 4km',
+                job_name='jobs.create_prism_mesh.CreatePrismMesh',
+                expected_count=99411,
+                type='layer',
+                object_ref_id=settings.agol_prism_mesh_layer_id,
+                table_layer_name='4km',
+                job_params={ 'resolution': '4km', 'delete': True }
             )
         ]
     )

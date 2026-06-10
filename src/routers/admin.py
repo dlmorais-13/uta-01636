@@ -94,7 +94,7 @@ async def load_import_data_point(
 
 
 @router.get("/data/{data_id}/import/{import_id}")
-async def process_import_data_point(
+async def get_import_data_point(
     authorization: Annotated[str | None, Header()],
     api: Annotated[AgolAPI, Depends(AgolAPI_Injector)],
     data_id: str,
@@ -116,4 +116,4 @@ async def process_import_data_point(
     if import_data is None:
         raise Exception('Failed to find data import configuration.')
 
-    jobManager.add(import_data.job_name, {})
+    jobManager.add(import_data.job_name, import_data.job_params or {})

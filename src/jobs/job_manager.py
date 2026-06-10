@@ -32,7 +32,6 @@ class JobManager():
         self.queue_ref = self.agol.get_table_ref(settings.agol_queue_feature_id)
 
     def add(self, job_name: str, job_params: dict):
-
         self.agol.add_list(self.queue_ref, [
             {
                 'attributes': {
