@@ -27,12 +27,16 @@ class AgolAPI:
             LOGGER.error(f'{Fore.RED}✕ Authentication failed: {e}{Style.RESET_ALL}')
             raise RuntimeError(f'Error authenticating to ArcGIS Online at URL {settings.agol_url}') from e
 
-    def get_layer_ref(self, layer_id: str) -> FeatureLayer:
+    def get_layer_ref(self, layer_id: str, layer_name: str = None) -> FeatureLayer:
         flc: FeatureLayerCollection = FeatureLayerCollection.fromitem(self.gis.content.get(layer_id))
+        if layer_name:
+            return [l for l in flc.layers if l.properties.name == layer_name][0]
         return flc.layers[0] if flc else None
 
-    def get_table_ref(self, table_id: str) -> Table:
+    def get_table_ref(self, table_id: str, table_name: str = None) -> Table:
         ref = self.gis.content.get(table_id)
+        if table_name:
+            return [t for t in ref.tables if t.properties.name == table_name][0]
         return ref.tables[0] if ref else None
 
     def query(self, layerIdOrRef: str | FeatureLayer, where: str, count: int = 1, order_by_fields="OBJECTID ASC"):

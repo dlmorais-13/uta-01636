@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     agol_url: str
     agol_client_id: str
     agol_client_secret: str
+    agol_default_crs: str
     agol_config_table_id: str
     agol_project_name: str
     agol_mapviewer_base_url: str
@@ -15,6 +16,7 @@ class Settings(BaseSettings):
     agol_base_layer_id: str
     agol_base_layer_view_id: str
     agol_studies_layer_id: str
+    agol_prism_mesh_layer_id: str
     ssurgo_mapunits_layer_id: str
     usa_census_counties_layer_id: str
     prism_base_url: str
