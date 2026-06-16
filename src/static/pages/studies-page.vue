@@ -42,8 +42,8 @@
                         </td>
                         <td>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
-                                <button class="btn btn-sm btn-primary">Open</button>
-                                <button class="btn btn-sm btn-secondary">Compare</button>
+                                <button class="btn btn-sm btn-primary" :disabled="study.status != 'completed'">Open</button>
+                                <button class="btn btn-sm btn-secondary" :disabled="study.status != 'completed'">Compare</button>
                             </div>
                         </td>
                     </tr>
