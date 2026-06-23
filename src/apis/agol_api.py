@@ -93,6 +93,20 @@ class AgolAPI:
         else:
             LOGGER.info(f'{Fore.GREEN}✓ Add succeed{Style.RESET_ALL}')
 
+    def batch_edit(self, layerIdOrRef: str | FeatureLayer, features_to_add: list[Feature] = [], features_to_edit: list[Feature] = [], batch_size: int = 1000):
+        LOGGER.info(f'Updating features on layer {layerIdOrRef}. Size {len(features_to_add) + len(features_to_edit)}')
+        try:
+            max_add_length = len(features_to_add)
+            max_edit_length = len(features_to_edit)
+            max_length = max(max_add_length, max_edit_length)
+
+            for i in range(0, max_length, batch_size):
+                to_add = features_to_add[i:i+batch_size] if i <= max_add_length else []
+                to_edit = features_to_edit[i:i+batch_size] if i <= max_edit_length else []
+                self.edit_list(layerIdOrRef, to_add, to_edit)
+        except Exception as e:
+            raise RuntimeError('Error adding batch of features') from e
+
     def batch_add(self, layerIdOrRef: str | FeatureLayer, features: list[Feature], batch_size: int = 1000):
         LOGGER.info(f'Updating features on layer {layerIdOrRef}. Size {len(features)}')
         try:
@@ -101,6 +115,26 @@ class AgolAPI:
         except Exception as e:
             raise RuntimeError('Error adding batch of features') from e
 
+    def edit_list(self, layerIdOrRef: str | FeatureLayer, to_add: list[Feature], to_edit: list[Feature]):
+        try:
+            ref = layerIdOrRef if not isinstance(layerIdOrRef, str) else self.get_layer_ref(layerIdOrRef)
+            response = ref.edit_features(adds=cast(list[dict], to_add), updates=cast(list[dict], to_edit))
+            if isinstance(response, dict) and 'addResults' in response:
+                for result in response['updateResults']:
+                    if not result['success']:
+                        LOGGER.error(f'{Fore.RED}Add error: {result["error"]["description"]}{Style.RESET_ALL}')
+                        raise Exception(f'Add error: {result["error"]["description"]}')
+                    
+                for result in response['addResults']:
+                    if not result['success']:
+                        LOGGER.error(f'{Fore.RED}Add error: {result["error"]["description"]}{Style.RESET_ALL}')
+                        raise Exception(f'Add error: {result["error"]["description"]}')
+            
+            LOGGER.info(f'{Fore.GREEN}{len(to_add)} records added. {len(to_edit)} records updated.{Style.RESET_ALL}')
+        except Exception as e:
+            LOGGER.error(f'{Fore.RED}Error adding features: {e}{Style.RESET_ALL}')
+            raise RuntimeError('Error adding features') from e
+        
     def add_list(self, layerIdOrRef: str | FeatureLayer, features: list[Feature]):
         LOGGER.info(f'Updating features on layer {layerIdOrRef}. Size {len(features)}')
         try:

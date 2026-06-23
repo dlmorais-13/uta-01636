@@ -17,9 +17,11 @@ class Settings(BaseSettings):
     agol_base_layer_view_id: str
     agol_studies_layer_id: str
     agol_prism_mesh_layer_id: str
+    agol_prism_data_layer_id: str
     ssurgo_mapunits_layer_id: str
     usa_census_counties_layer_id: str
     prism_base_url: str
+    prism_nacse_url: str
     prism_mesh_base_url: str
     prism_mesh_crs: str
     job_manager_id: Optional[int] = None

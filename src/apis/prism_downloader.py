@@ -14,7 +14,10 @@ LOGGER = logging.getLogger(__name__)
 PRISM_RESOLUTIONS = Literal['800m', '4km']
 PRISM_VARIABLES = Literal['ppt', 'solclear', 'solslope', 'soltotal',
                           'soltrans', 'tdmean', 'tmax', 'tmean', 'tmin', 'vpdmax', 'vpdmin']
+PRISM_WS_VARIABLES = Literal['ppt', 'tmin', 'tmax', 'tmean', 'tdmean', 'vpdmin', 'vpdmax']
 PRISM_INTERVALS = Literal['monthly', 'daily']
+PRISM_TYPES = Literal['normals', 'time_series']
+
 
 class PrismDownloader():
     """
@@ -27,18 +30,36 @@ class PrismDownloader():
         mesh_downloaded_file_path = self._download(mesh_download_url, mesh_import_dir)
         return self._unzip_file(mesh_downloaded_file_path, overwrite=False)
 
-    def _get_download_url(self, resolution: PRISM_RESOLUTIONS, variable: PRISM_VARIABLES, time_interval: PRISM_INTERVALS, date: dt) -> str:
+    def get_data_path(self, resolution: PRISM_RESOLUTIONS, type: PRISM_TYPES, variable: PRISM_VARIABLES, interval: PRISM_INTERVALS, date: dt) -> str:
+        data_download_url = self._get_download_url(resolution, type, variable, interval, date)
+        date_in_name = date.strftime('%Y%m' if interval == 'monthly' else '%Y%m%d')
+        data_import_dir = os.path.join(settings.workdir, 'prism', 'data', type, resolution, date_in_name)
+        filename = None if type == 'normals' else f'{variable}.zip'
+        data_downloaded_file_path = self._download(data_download_url, data_import_dir, filename=filename)
+        return self._unzip_file(data_downloaded_file_path, overwrite=False) if data_downloaded_file_path is not None else None
+
+    def _get_download_url(self, resolution: PRISM_RESOLUTIONS, type: PRISM_TYPES, variable: PRISM_VARIABLES, interval: PRISM_INTERVALS, date: dt) -> str:
+        """
+        Normals:
+        - https://data.prism.oregonstate.edu/normals/us/800m/ppt/monthly/prism_ppt_us_30s_202001_avg_30y.zip
+        Time Series:
+        - https://services.nacse.org/prism/data/get/us/4km/tmin/202204?format=nc
+        """
         resolution_in_name = '30s' if resolution == '800m' else '25m'
-        date_in_name = date.strftime('%Y%m' if resolution == '800m' else '%Y%m%d')
-        # TODO This is downloading only normals. Should be able to download anything.
-        return f'{settings.prism_base_url}/{resolution}/{variable}/{time_interval}/prism_{variable}_us_{resolution_in_name}_{date_in_name}_avg_30y.zip'
-    
+        date_in_name = date.strftime('%Y%m' if interval == 'monthly' else '%Y%m%d')
+
+        if type == 'normals':
+            return f'{settings.prism_base_url}/normals/us/{resolution}/{variable}/{interval}/prism_{variable}_us_{resolution_in_name}_{date_in_name}_avg_30y.zip'
+        else:
+            return f'{settings.prism_nacse_url}/us/{resolution}/{variable}/{date_in_name}?format=nc'
+
     def _get_mesh_download_url(self, resolution: PRISM_RESOLUTIONS) -> str:
         # https://prism.oregonstate.edu/downloads/data/prism_4km_mesh.zip
         return f'{settings.prism_mesh_base_url}/downloads/data/prism_{resolution}_mesh.zip'
-    
-    def _download(self, url: str, dest_folder: str, check_zip: bool = True) -> str:
-        filename = url.split('/')[-1]
+
+    def _download(self, url: str, dest_folder: str, check_zip: bool = True, filename: str = None) -> str:
+        filename = filename if filename is not None else url.split('/')[-1]
+        os.makedirs(dest_folder, exist_ok=True)
         file_path = os.path.join(dest_folder, filename)
 
         # Ignore if file already exists but not if it is not a valid zip file.
@@ -57,6 +78,12 @@ class PrismDownloader():
                             f.write(chunk)
 
                 LOGGER.info(f'File successfully downloaded and saved to: {os.path.abspath(file_path)}')
+            except requests.exceptions.HTTPError as httpError:
+                if httpError.response.status_code == 404:
+                    LOGGER.info(f'The PRISM URL "{url}" does not exist.')
+                    return None
+                else:
+                    LOGGER.error(f'An error occurred: {httpError}')
             except requests.exceptions.RequestException as e:
                 LOGGER.error(f'An error occurred: {e}')
         else:
@@ -93,10 +120,10 @@ class PrismDownloader():
             shutil.rmtree(dest_path)
             zip_file.extractall(path=dest_path)
             return dest_path
-        
+
         elif os.path.exists(dest_path) and not overwrite:
             return dest_path
-        
+
         else:
             zip_file.extractall(path=dest_path)
             return dest_path
