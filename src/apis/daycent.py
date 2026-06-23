@@ -6,6 +6,7 @@ import json
 
 from src.settings import settings
 from src.utils.build_soilsin import BuildSoilsin
+from src.utils.build_weather_file import BuildWeatherFile
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 
 
@@ -32,15 +33,27 @@ class DaycentExecutor:
     async def execute(self, parcel_id: int, study_id: int):
         LOGGER.info(f'Starting Daycent executions for study {study_id} and parcel {parcel_id}.')
 
+        # TODO get args from study parameters.
+        resolution = '4km'
+        interval = 'monthly'
+        type = 'normals'
+
+        wth_file_path = await BuildWeatherFile().build(parcel_id, resolution=resolution, interval=interval, type=type)
+
         parcel_mapunits = self.get_parcel_mapunits(parcel_id)
-        print(parcel_mapunits)
+        LOGGER.info(f'Parcel {parcel_id} map units: {parcel_mapunits}')
 
         for mapunit in parcel_mapunits:
             LOGGER.info(f'Starting execution for mapunit {mapunit["id"]}.')
             with tempfile.TemporaryDirectory(suffix=f'_{study_id}_{parcel_id}') as tmpdir:
                 LOGGER.info(f'Created temporary directory {tmpdir}')
 
+                # Copy files that do not vary between executions.
+                # TODO Check if linking works as well.
                 self.copy_base_files(tmpdir)
+
+                # Copy the previously generated weather file.
+                shutil.copy(wth_file_path, os.path.join(tmpdir, 'site.wth'))
 
                 build_soilsin = BuildSoilsin()
                 await build_soilsin.build(tmpdir, int(mapunit['id']))
