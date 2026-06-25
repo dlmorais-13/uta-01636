@@ -8,6 +8,7 @@ from src.settings import settings
 from src.utils.build_soilsin import BuildSoilsin
 from src.utils.build_weather_file import BuildWeatherFile
 from src.utils.build_site_file import BuildSiteFile
+from src.utils.build_climate_change_files import BuildClimateChangeFiles
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 
 
@@ -39,6 +40,11 @@ class DaycentExecutor:
         resolution = '4km'
         interval = 'monthly'
         type = 'normals'
+        tmin_change = 0.022
+        tmax_change = 0.022
+        prec_change = 1.
+        study_start_year = 2021
+        study_end_year = 2050
 
         wth_file_path = await BuildWeatherFile().build(parcel_id, resolution=resolution, interval=interval, type=type)
 
@@ -62,6 +68,15 @@ class DaycentExecutor:
                     dest_dir=tmpdir,
                     parcel_id=parcel_id,
                     nlayers=nlayers
+                ).build()
+
+                await BuildClimateChangeFiles(
+                    dest_dir=tmpdir,
+                    start_year=study_start_year,
+                    end_year=study_end_year,
+                    tmax_change=tmax_change,
+                    tmin_change=tmin_change,
+                    precipitation_change=prec_change
                 ).build()
 
                 LOGGER.info(f'Finished Daycent execution for study {study_id} and parcel {parcel_id}.')
