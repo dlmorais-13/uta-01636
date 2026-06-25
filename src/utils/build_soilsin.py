@@ -11,26 +11,32 @@ class BuildSoilsin():
     This class will fetch the SSURGO mapunit data using soildb and will create the file
     in the designated folder.
 
+    Will return the number of layers defined in soils.in file.
+
     Usage:
         build_soilsin = BuildSoilsin()
         await build_soilsin.build(tmpdir, mapunit_key))
     """
 
     ssurgo_api: Ssurgo_API
+    dir: str
 
-    def __init__(self):
+    def __init__(self, tmpdir: str):
+        self.dir = tmpdir
         self.ssurgo_api = Ssurgo_API()
 
-    async def build(self, dir: str, mapunit_key: int):
+    async def build(self, mapunit_key: int):
         components = await self.ssurgo_api.get_ssurgo_components(mapunit_key)
         chorizons = await self.ssurgo_api.get_ssurgo_chorizon(components)
         soilsin_data = self.get_mapunit_soilsin_data(mapunit_key, components, chorizons)
         
-        file_path = os.path.join(dir, 'soils.in')
+        file_path = os.path.join(self.dir, 'soils.in')
         with open(file_path, 'w') as f:
             for layer in soilsin_data:
                 f.write(' '.join([f'{l}' for l in layer]))
                 f.write('\n')
+
+        return len(soilsin_data)
 
 
     def get_layer_data_from_horizon(self, upper_depth: int, lower_depth: int, horizon: Series) -> list[float]:

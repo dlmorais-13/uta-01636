@@ -7,10 +7,12 @@ import json
 from src.settings import settings
 from src.utils.build_soilsin import BuildSoilsin
 from src.utils.build_weather_file import BuildWeatherFile
+from src.utils.build_site_file import BuildSiteFile
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 
 
 LOGGER = logging.getLogger(__name__)
+
 
 class DaycentExecutor:
     """
@@ -24,9 +26,9 @@ class DaycentExecutor:
         executor = DaycentExecutor()
         await executor.execute(parcel_id, study_id)
     """
-    
+
     agol_api: AgolAPI
-    
+
     def __init__(self):
         self.agol_api = AgolAPI_Injector()
 
@@ -55,15 +57,19 @@ class DaycentExecutor:
                 # Copy the previously generated weather file.
                 shutil.copy(wth_file_path, os.path.join(tmpdir, 'site.wth'))
 
-                build_soilsin = BuildSoilsin()
-                await build_soilsin.build(tmpdir, int(mapunit['id']))
+                nlayers = await BuildSoilsin(tmpdir).build(int(mapunit['id']))
+                await BuildSiteFile(
+                    dest_dir=tmpdir,
+                    parcel_id=parcel_id,
+                    nlayers=nlayers
+                ).build()
 
                 LOGGER.info(f'Finished Daycent execution for study {study_id} and parcel {parcel_id}.')
 
-            
     def get_parcel_mapunits(self, parcel_id: int):
         layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
-        featureSet = layer_ref.query(where=f'parcel_key = {parcel_id}', return_all_records=False, result_record_count=1, out_fields=['map_unit_data'])
+        featureSet = layer_ref.query(
+            where=f'parcel_key = {parcel_id}', return_all_records=False, result_record_count=1, out_fields=['map_unit_data'])
         map_unit_data = featureSet.features[0].attributes['map_unit_data']
         return json.loads(map_unit_data)
 
@@ -71,10 +77,11 @@ class DaycentExecutor:
         for file_name in os.listdir(settings.daycent_basedir):
             source_file = os.path.join(settings.daycent_basedir, file_name)
             target_file = os.path.join(tmpdir, file_name)
-            
+
             if os.path.isfile(source_file):
                 shutil.copy(source_file, target_file)
                 print(f"Copied: {file_name}")
+
 
 if __name__ == '__main__':
     import asyncio
