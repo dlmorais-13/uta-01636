@@ -11,6 +11,7 @@ from src.utils.build_weather_file import BuildWeatherFile
 from src.utils.build_site_file import BuildSiteFile
 from src.utils.build_climate_change_files import BuildClimateChangeFiles
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
+from src.apis.ssurgo_api import Ssurgo_API
 
 
 LOGGER = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ class DaycentExecutor:
 
     def __init__(self):
         self.agol_api = AgolAPI_Injector()
+        self.ssurgo_api = Ssurgo_API()
 
     async def execute(self, parcel_id: int, study_id: int):
         LOGGER.info(f'Starting Daycent executions for study {study_id} and parcel {parcel_id}.')
@@ -58,7 +60,8 @@ class DaycentExecutor:
         LOGGER.info(f'Parcel {parcel_id} map units: {parcel_mapunits}')
 
         for mapunit in parcel_mapunits:
-            LOGGER.info(f'Starting execution for mapunit {mapunit["id"]}.')
+            mapunit_key = int(mapunit['id'])
+            LOGGER.info(f'Starting execution for mapunit {mapunit_key}.')
             with tempfile.TemporaryDirectory(suffix=f'_{study_id}_{parcel_id}') as tmpdir:
                 LOGGER.info(f'Created temporary directory {tmpdir}')
 
@@ -69,11 +72,17 @@ class DaycentExecutor:
                 # Copy the previously generated weather file.
                 shutil.copy(wth_file_path, os.path.join(tmpdir, 'site.wth'))
 
-                nlayers = await BuildSoilsin(tmpdir).build(int(mapunit['id']))
+                # Get the SSURGO components for the map unit. They are used by multiple inputs.
+                components = await self.ssurgo_api.get_ssurgo_components(mapunit_key, extra_columns=['slope_r'])
+
+                nlayers = await BuildSoilsin(tmpdir).build(mapunit_key, components=components)
+
                 await BuildSiteFile(
                     dest_dir=tmpdir,
                     parcel=self.parcel,
-                    nlayers=nlayers
+                    nlayers=nlayers,
+                    elevation=site_elevation,
+                    components=components
                 ).build()
 
                 await BuildClimateChangeFiles(

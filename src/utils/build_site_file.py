@@ -1,6 +1,8 @@
 import os
+import numpy as np
 from arcgis.features import Feature
 from arcgis.geometry import Geometry
+from pandas import DataFrame
 
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 
@@ -14,12 +16,15 @@ class BuildSiteFile():
     dest_dir: str
     parcel: Feature
     nlayers: int
+    components: DataFrame
 
-    def __init__(self, dest_dir: str, parcel: Feature, nlayers: int):
+    def __init__(self, dest_dir: str, parcel: Feature, nlayers: int, elevation: int, components: DataFrame):
         self.agol_api = AgolAPI_Injector()
         self.dest_dir = dest_dir
         self.nlayers = nlayers
         self.parcel = parcel
+        self.elevation = elevation
+        self.components = components
 
     async def build(self):
         file_lines = ["X     Archived"]
@@ -67,6 +72,22 @@ class BuildSiteFile():
         parcel_centroid = Geometry(self.parcel.geometry).centroid
         lines.append(f"{parcel_centroid[1]:<18.3f} SITLAT")
         lines.append(f"{(parcel_centroid[0] * -1):<18.3f} SITLNG")
+
+        # ELEV | meters
+        # Elevation
+        lines.append(f"{self.elevation:<18} ELEV")
+
+        # SITSLP | degrees
+        # Site slope
+        # Here calculated as the weighted average slope of all components
+        self.components['slope_deg'] = np.degrees(np.arctan(self.components['slope_r'] / 100))
+        slope_deg = (self.components['slope_deg'] * self.components['comppct_r']).sum() / self.components['comppct_r'].sum()
+        lines.append(f"{int(slope_deg):<18.0f} SITSLP")
+
+        # ASPECT | degrees
+        # Site aspect
+        # TODO Check what value to use - Might be possible to use 'aspectrep' from SSURGO component.
+        lines.append(f"{0:<18} ASPECT")
 
         # NLAYER | count | 1 - 9
         # Number of soil layers in water model (maximum of 9);used only to calculated the amount of water available forsurvival of the plant.

@@ -25,9 +25,9 @@ class BuildSoilsin():
         self.dir = tmpdir
         self.ssurgo_api = Ssurgo_API()
 
-    async def build(self, mapunit_key: int):
-        components = await self.ssurgo_api.get_ssurgo_components(mapunit_key)
-        chorizons = await self.ssurgo_api.get_ssurgo_chorizon(components)
+    async def build(self, mapunit_key: int, components: DataFrame = None, chorizons: DataFrame = None):
+        components = components if components is not None else (await self.ssurgo_api.get_ssurgo_components(mapunit_key))
+        chorizons = chorizons if chorizons is not None else (await self.ssurgo_api.get_ssurgo_chorizon(components))
         soilsin_data = self.get_mapunit_soilsin_data(mapunit_key, components, chorizons)
         
         file_path = os.path.join(self.dir, 'soils.in')

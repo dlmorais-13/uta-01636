@@ -42,7 +42,7 @@ class DaymetDownloader():
         if not os.path.exists(file_path):
             await self._download_data(lat, lon, vars, file_path)
 
-        elevation: float | None = None
+        elevation: int | None = None
         headers: dict | None = None
         data: dict = {}
 
@@ -52,7 +52,7 @@ class DaymetDownloader():
                 # If elevation was not read yet, check to read it.
                 if elevation is None:
                     if line.startswith('Elevation:'):
-                        elevation = float("".join([c for c in line if c.isdigit()]))
+                        elevation = int("".join([c for c in line if c.isdigit()]))
 
                 # If elevation was read, check if reached header.
                 elif line.startswith('year,yday,'):

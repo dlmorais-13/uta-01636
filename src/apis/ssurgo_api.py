@@ -40,12 +40,12 @@ class Ssurgo_API:
                 reverse=True
             )
 
-    async def get_ssurgo_components(self, mapunit_key: int) -> DataFrame:
+    async def get_ssurgo_components(self, mapunit_key: int, extra_columns: list[str] = []) -> DataFrame:
         comp_response = await soildb.fetch_by_keys(
             keys=[mapunit_key],
             table="component",
             key_column="mukey",
-            columns=['mukey', 'cokey', 'comppct_r', 'majcompflag']
+            columns=['mukey', 'cokey', 'comppct_r', 'majcompflag'] + extra_columns
         )
         comp_df = comp_response.to_dataframe()
         return comp_df[comp_df['majcompflag'] == 'Yes']
