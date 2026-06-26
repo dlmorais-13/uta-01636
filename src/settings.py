@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     agol_prism_data_layer_id: str
     ssurgo_mapunits_layer_id: str
     usa_census_counties_layer_id: str
+    daymet_base_url: str
     prism_base_url: str
     prism_nacse_url: str
     prism_mesh_base_url: str

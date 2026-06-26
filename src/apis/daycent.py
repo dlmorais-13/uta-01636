@@ -3,6 +3,7 @@ import tempfile
 import shutil
 import logging
 import json
+from arcgis.features import Feature
 
 from src.settings import settings
 from src.utils.build_soilsin import BuildSoilsin
@@ -29,6 +30,7 @@ class DaycentExecutor:
     """
 
     agol_api: AgolAPI
+    parcel: Feature
 
     def __init__(self):
         self.agol_api = AgolAPI_Injector()
@@ -37,16 +39,20 @@ class DaycentExecutor:
         LOGGER.info(f'Starting Daycent executions for study {study_id} and parcel {parcel_id}.')
 
         # TODO get args from study parameters.
-        resolution = '4km'
-        interval = 'monthly'
-        type = 'normals'
+        # resolution = '4km'
+        # interval = 'monthly'
+        # type = 'normals'
         tmin_change = 0.022
         tmax_change = 0.022
         prec_change = 1.
         study_start_year = 2021
         study_end_year = 2050
 
-        wth_file_path = await BuildWeatherFile().build(parcel_id, resolution=resolution, interval=interval, type=type)
+        base_layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
+        query_res = base_layer_ref.query(where=f"parcel_key = {parcel_id}", return_geometry=True, out_sr=4326)
+        self.parcel = query_res.features[0]
+
+        site_elevation, wth_file_path = await BuildWeatherFile().build_daymet(self.parcel)
 
         parcel_mapunits = self.get_parcel_mapunits(parcel_id)
         LOGGER.info(f'Parcel {parcel_id} map units: {parcel_mapunits}')
@@ -66,7 +72,7 @@ class DaycentExecutor:
                 nlayers = await BuildSoilsin(tmpdir).build(int(mapunit['id']))
                 await BuildSiteFile(
                     dest_dir=tmpdir,
-                    parcel_id=parcel_id,
+                    parcel=self.parcel,
                     nlayers=nlayers
                 ).build()
 

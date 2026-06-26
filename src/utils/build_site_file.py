@@ -3,7 +3,6 @@ from arcgis.features import Feature
 from arcgis.geometry import Geometry
 
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
-from src.settings import settings
 
 
 class BuildSiteFile():
@@ -16,14 +15,11 @@ class BuildSiteFile():
     parcel: Feature
     nlayers: int
 
-    def __init__(self, dest_dir: str, parcel_id: int, nlayers: int):
+    def __init__(self, dest_dir: str, parcel: Feature, nlayers: int):
         self.agol_api = AgolAPI_Injector()
         self.dest_dir = dest_dir
         self.nlayers = nlayers
-
-        base_layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
-        query_res = base_layer_ref.query(where=f"parcel_key = {parcel_id}", return_geometry=True, out_sr=4326)
-        self.parcel = query_res.features[0]
+        self.parcel = parcel
 
     async def build(self):
         file_lines = ["X     Archived"]
@@ -162,7 +158,7 @@ class BuildSiteFile():
         base simulations before the future simulation, we can just set all values to
         any number > 0.
         """
-        
+
         lines = []
         lines.append("*** Organic matter initial values")
         variables = [
@@ -186,7 +182,7 @@ class BuildSiteFile():
         base simulations before the future simulation, we can just set all values to
         any number > 0.
         """
-        
+
         lines = []
         lines.append("*** Forest organic matter initial parameters")
         variables = [
@@ -208,7 +204,7 @@ class BuildSiteFile():
         base simulations before the future simulation, we can just set all values to
         any number > 0.
         """
-        
+
         lines = []
         lines.append("*** Mineral initial parameters")
         variables = [
@@ -235,7 +231,8 @@ class BuildSiteFile():
         lines = []
         lines.append("*** Water initial parameters")
 
-        variables = ['RWCF(1)', 'RWCF(2)', 'RWCF(3)', 'RWCF(4)', 'RWCF(5)', 'RWCF(6)', 'RWCF(7)', 'RWCF(8)', 'RWCF(9)', 'RWCF(10)', 'SNLQ', 'SNOW']
+        variables = ['RWCF(1)', 'RWCF(2)', 'RWCF(3)', 'RWCF(4)', 'RWCF(5)', 'RWCF(6)',
+                     'RWCF(7)', 'RWCF(8)', 'RWCF(9)', 'RWCF(10)', 'SNLQ', 'SNOW']
         lines += [
             f"{0.1:<18.1f} {v}"
             for v in variables

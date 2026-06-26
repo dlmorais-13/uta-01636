@@ -2,10 +2,12 @@ import logging
 import tempfile
 from arcgis.geometry.filters import intersects
 from arcgis.geometry import Geometry
+from arcgis.features import Feature
 from datetime import datetime as dt, timedelta
 
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.apis.prism_downloader import PRISM_RESOLUTIONS, PRISM_INTERVALS, PRISM_TYPES
+from src.apis.daymet import DaymetDownloader
 from src.settings import settings
 
 LOGGER = logging.getLogger(__name__)
@@ -24,8 +26,36 @@ class BuildWeatherFile():
     def __init__(self):
         self.agol_api = AgolAPI_Injector()
 
-    async def build(self, parcel_key: int, resolution: PRISM_RESOLUTIONS, interval: PRISM_INTERVALS, type: PRISM_TYPES):
-        mesh_id = await self.get_mesh_grid_id(parcel_key, resolution)
+    async def build_daymet(self, parcel: Feature):
+        daymet = DaymetDownloader()
+        parcel_centroid = Geometry(parcel.geometry).centroid
+        elevation, daymet_data = await daymet.get_data(lat=parcel_centroid[1], lon=parcel_centroid[0], vars=['tmax', 'tmin', 'prcp'])
+        
+        start_date = dt.strptime('19800101', '%Y%m%d')
+        end_date = dt.strptime('20251231', '%Y%m%d')
+        with tempfile.NamedTemporaryFile(mode='w+t', delete=False) as tmp_file:
+            current_date = start_date
+            while current_date <= end_date:
+                day_of_month = current_date.day
+                month = current_date.month
+                year = current_date.year
+                day_of_year = current_date.timetuple().tm_yday
+
+                date_data = daymet_data[f"{year}_{min(365, day_of_year)}"]
+                tmax = "{:.3f}".format(date_data['tmax'])
+                tmin = "{:.3f}".format(date_data['tmin'])
+                ppt = "{:.3f}".format(date_data['prcp'])
+                tmp_file.write(f"{day_of_month}\t{month}\t{year}\t{day_of_year}\t{tmax}\t{tmin}\t{ppt}\n")
+
+                current_date += timedelta(days=1)
+            
+            tmp_file.flush()
+            file_name = tmp_file.name
+
+        return elevation, file_name
+
+    async def build_prism(self, parcel: Feature, resolution: PRISM_RESOLUTIONS, interval: PRISM_INTERVALS, type: PRISM_TYPES):
+        mesh_id = await self.get_mesh_grid_id(parcel.attributes['parcel_key'], resolution)
         prism_data = await self.get_prism_data_for_mesh_unit(mesh_id, resolution, interval, type)
 
         if type == 'normals':
@@ -51,9 +81,11 @@ class BuildWeatherFile():
                 tmp_file.write(f"{day_of_month}\t{month}\t{year}\t{day_of_year}\t{tmax}\t{tmin}\t{ppt}\n")
 
                 current_date += timedelta(days=1)
+
             tmp_file.flush()
             file_name = tmp_file.name
-        return file_name
+
+        return None, file_name
 
     async def get_mesh_grid_id(self, parcel_key: int, resolution: PRISM_RESOLUTIONS):
         LOGGER.info(f'Retrieving PRISM mesh unit id from AGOL.')
