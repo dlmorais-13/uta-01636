@@ -10,6 +10,7 @@ from src.utils.build_soilsin import BuildSoilsin
 from src.utils.build_weather_file import BuildWeatherFile
 from src.utils.build_site_file import BuildSiteFile
 from src.utils.build_climate_change_files import BuildClimateChangeFiles
+from src.utils.build_fix_file import BuildFixFile
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.apis.ssurgo_api import Ssurgo_API
 
@@ -37,18 +38,14 @@ class DaycentExecutor:
         self.agol_api = AgolAPI_Injector()
         self.ssurgo_api = Ssurgo_API()
 
-    async def execute(self, parcel_id: int, study_id: int):
+    async def execute(self, parcel_id: int, study_id: int, study_params: dict | None = None):
         LOGGER.info(f'Starting Daycent executions for study {study_id} and parcel {parcel_id}.')
 
-        # TODO get args from study parameters.
-        # resolution = '4km'
-        # interval = 'monthly'
-        # type = 'normals'
-        tmin_change = 0.022
-        tmax_change = 0.022
-        prec_change = 1.
-        study_start_year = 2021
-        study_end_year = 2050
+        if study_params is None:
+            study_table_ref = self.agol_api.get_table_ref(settings.agol_studies_layer_id)
+            study_query_res = study_table_ref.query(where=f"study_id = {study_id}")
+            study_obj = study_query_res.features[0].attributes
+            study_params = json.loads(study_obj['params'])
 
         base_layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
         query_res = base_layer_ref.query(where=f"parcel_key = {parcel_id}", return_geometry=True, out_sr=4326)
@@ -65,36 +62,50 @@ class DaycentExecutor:
             with tempfile.TemporaryDirectory(suffix=f'_{study_id}_{parcel_id}') as tmpdir:
                 LOGGER.info(f'Created temporary directory {tmpdir}')
 
-                # Copy files that do not vary between executions.
-                # TODO Check if linking works as well.
-                self.copy_base_files(tmpdir)
-
-                # Copy the previously generated weather file.
-                shutil.copy(wth_file_path, os.path.join(tmpdir, 'site.wth'))
-
-                # Get the SSURGO components for the map unit. They are used by multiple inputs.
-                components = await self.ssurgo_api.get_ssurgo_components(mapunit_key, extra_columns=['slope_r'])
-
-                nlayers = await BuildSoilsin(tmpdir).build(mapunit_key, components=components)
-
-                await BuildSiteFile(
-                    dest_dir=tmpdir,
-                    parcel=self.parcel,
-                    nlayers=nlayers,
-                    elevation=site_elevation,
-                    components=components
-                ).build()
-
-                await BuildClimateChangeFiles(
-                    dest_dir=tmpdir,
-                    start_year=study_start_year,
-                    end_year=study_end_year,
-                    tmax_change=tmax_change,
-                    tmin_change=tmin_change,
-                    precipitation_change=prec_change
-                ).build()
+                self.prepare_input_files(
+                    tmpdir=tmpdir,
+                    params=study_params,
+                    mapunit_key=mapunit_key,
+                    site_elevation=site_elevation,
+                    wth_file_path=wth_file_path,
+                )
 
                 LOGGER.info(f'Finished Daycent execution for study {study_id} and parcel {parcel_id}.')
+
+    async def prepare_input_files(self, tmpdir: str, params: dict, wth_file_path: str, mapunit_key: int, site_elevation: int | None):
+        # Copy files that do not vary between executions.
+        # TODO: Check if linking works instead of copy for daycent input files, except fix.100. kanpilotID(aop861yphyqkvfn2x9xpdkf5)
+        self.copy_base_files(tmpdir)
+
+        # Copy the previously generated weather file.
+        shutil.copy(wth_file_path, os.path.join(tmpdir, 'site.wth'))
+
+        # Get the SSURGO components for the map unit. They are used by multiple inputs.
+        components = await self.ssurgo_api.get_ssurgo_components(mapunit_key, extra_columns=['slope_r'])
+
+        soil_layer_data = await BuildSoilsin(tmpdir).build(mapunit_key, components=components)
+
+        await BuildSiteFile(
+            dest_dir=tmpdir,
+            parcel=self.parcel,
+            nlayers=len(soil_layer_data),
+            elevation=site_elevation,
+            components=components
+        ).build()
+
+        await BuildClimateChangeFiles(
+            dest_dir=tmpdir,
+            start_year=params['study_start_year'],
+            end_year=params['study_end_year'],
+            tmax_change=0,
+            tmin_change=0,
+            precipitation_change=0
+        ).build()
+
+        await BuildFixFile(
+            dest_dir=tmpdir,
+            soil_layer_data=soil_layer_data
+        ).build()
 
     def get_parcel_mapunits(self, parcel_id: int):
         layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
@@ -116,4 +127,7 @@ class DaycentExecutor:
 if __name__ == '__main__':
     import asyncio
     executor = DaycentExecutor()
-    asyncio.run(executor.execute(211091, 1))
+    asyncio.run(executor.execute(211091, 1, dict(
+        study_start_year = 2021,
+        study_end_year = 2050
+    )))

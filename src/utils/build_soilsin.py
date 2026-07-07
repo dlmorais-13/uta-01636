@@ -33,10 +33,10 @@ class BuildSoilsin():
         file_path = os.path.join(self.dir, 'soils.in')
         with open(file_path, 'w') as f:
             for layer in soilsin_data:
-                f.write(' '.join([f'{l}' for l in layer]))
+                f.write(' '.join([f'{l}' for l in layer[1:]]))
                 f.write('\n')
 
-        return len(soilsin_data)
+        return soilsin_data
 
 
     def get_layer_data_from_horizon(self, upper_depth: int, lower_depth: int, horizon: Series) -> list[float]:
