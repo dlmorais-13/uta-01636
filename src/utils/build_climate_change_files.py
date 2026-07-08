@@ -1,4 +1,10 @@
 import os
+import statistics
+from functools import reduce
+from collections import defaultdict
+from scipy.stats import theilslopes
+
+TotalizedData = dict[str, dict[str, dict[str, float | int]]]
 
 class BuildClimateChangeFiles():
     """
@@ -12,48 +18,104 @@ class BuildClimateChangeFiles():
     dest_dir: str
     start_year: int
     end_year: int
-    tmin_change: float
-    tmax_change: float
-    precipitation_change: float
+    wth_file: str
 
-    def __init__(self, dest_dir: str, start_year: int, end_year: int, tmax_change: float, tmin_change: float, precipitation_change: float):
+    def __init__(self, dest_dir: str, start_year: int, end_year: int, wth_file: str):
         self.dest_dir = dest_dir
         self.start_year = start_year
         self.end_year = end_year
-        self.tmax_change = tmax_change
-        self.tmin_change = tmin_change
-        self.precipitation_change = precipitation_change
+        self.wth_file = wth_file
 
     async def build(self):
-        self.build_tminscale()
-        self.build_tmaxscale()
-        self.build_precscale()
+        wth_data = self.read_wth_file()
+        totalized_values_per_month = self.calculate_totalized_values_per_month(wth_data)
+        self.calculate_theilslopes(totalized_values_per_month)
+        self.calculate_perc_ppt(totalized_values_per_month)
 
-    def build_tminscale(self):
-        values = [self.tmin_change for _ in range(12)]
+        self._write_file(
+            'tmaxscale.dat',
+            [float(totalized_values_per_month[month]['theilslope_tmax'].slope) for month in totalized_values_per_month]
+        )
+
+        self._write_file(
+            'tminscale.dat',
+            [float(totalized_values_per_month[month]['theilslope_tmin'].slope) for month in totalized_values_per_month]
+        )
+
+        # "perc_ppt" represents the percentual (0..1) difference of precipitation in each month.
+        self._write_file(
+            'precscale.dat',
+            [1 + float(totalized_values_per_month[month]['perc_ppt']) for month in totalized_values_per_month]
+        )
+
+    def read_wth_file(self):
+        wth_data: list[list[float | int]] = []
+        with open(self.wth_file, 'r') as file:
+            for line in file:
+                values = [
+                    int(s.split('.')[0]) if float(s).is_integer() else float(s)
+                    for s in line.split()
+                ]
+                wth_data.append(values)
+        return wth_data
+
+    def calculate_totalized_values_per_month(self, wth_data: list[list[float | int]]) -> TotalizedData:
+        totalized_per_month_data = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+
+        month_count = 0
+        current_month = 0
+
+        for line in wth_data:
+            month, year = line[1:3]
+
+            # First iteration, initialize the current_month control variable.
+            if current_month == 0:
+                current_month = f'{month}-{year}'
+                
+            # If changed month, compute previous month mean values.
+            elif current_month != f'{month}-{year}':
+                cMonth, cYear = [int(s) for s in current_month.split('-')]
+                
+                totalized_per_month_data[cMonth][cYear]['tmax'] = totalized_per_month_data[cMonth][cYear]['tmax'] / month_count
+                totalized_per_month_data[cMonth][cYear]['tmin'] = totalized_per_month_data[cMonth][cYear]['tmin'] / month_count
+                totalized_per_month_data[cMonth][cYear]['days'] = month_count
+
+                month_count = 0
+                current_month = f'{month}-{year}'
+            
+            month_count += 1
+            totalized_per_month_data[month][year]['tmax'] += line[4]
+            totalized_per_month_data[month][year]['tmin'] += line[5]
+            totalized_per_month_data[month][year]['ppt'] += line[6]
+
+        # Calculate the mean temp for the last month in the iteration
+        totalized_per_month_data[month][year]['tmax'] = totalized_per_month_data[month][year]['tmax'] / month_count
+        totalized_per_month_data[month][year]['tmin'] = totalized_per_month_data[month][year]['tmin'] / month_count
+        totalized_per_month_data[month][year]['days'] = month_count
+
+        return totalized_per_month_data
+
+    def calculate_theilslopes(self, wth_data: TotalizedData):
+        for month in wth_data:
+            for var in ['tmax', 'tmin', 'ppt']:
+                wth_data[month][f'theilslope_{var}'] = theilslopes(
+                    y=[wth_data[month][year][var] for year in wth_data[month] if isinstance(year, int)],
+                    x=[year for year in wth_data[month] if isinstance(year, int)]
+                )
+
+    def calculate_perc_ppt(self, wth_data: TotalizedData):
+        for month in wth_data:
+            wth_data[month]['perc_ppt'] = (
+                float(wth_data[month]['theilslope_ppt'].slope)
+                / statistics.mean([wth_data[month][year]['ppt'] for year in wth_data[month] if isinstance(year, int)])
+            )
+    
+    def _write_file(self, filename: str, values: list[float]):
         lines = [
-            [y, *values]
+            [y, *[f'{v:.6f}' for v in values]]
             for y in range(self.start_year, self.end_year + 1)
         ]
-        self._write_file('tminscale.dat', lines)
 
-    def build_tmaxscale(self):
-        values = [self.tmax_change for _ in range(12)]
-        lines = [
-            [y, *values]
-            for y in range(self.start_year, self.end_year + 1)
-        ]
-        self._write_file('tmaxscale.dat', lines)
-
-    def build_precscale(self):
-        values = [self.precipitation_change for _ in range(12)]
-        lines = [
-            [y, *values]
-            for y in range(self.start_year, self.end_year + 1)
-        ]
-        self._write_file('precscale.dat', lines)
-
-    def _write_file(self, filename: str, lines: list):
         file_path = os.path.join(self.dest_dir, filename)
         with open(file_path, 'w') as file:
             for line in lines:

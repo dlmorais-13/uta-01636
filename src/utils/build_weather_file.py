@@ -44,7 +44,8 @@ class BuildWeatherFile():
                 date_data = daymet_data[f"{year}_{min(365, day_of_year)}"]
                 tmax = "{:.3f}".format(date_data['tmax'])
                 tmin = "{:.3f}".format(date_data['tmin'])
-                ppt = "{:.3f}".format(date_data['prcp'])
+                # Set precipitation in cm in DayCent (DayMet returns in mm)
+                ppt = "{:.3f}".format(date_data['prcp'] / 10)
                 tmp_file.write(f"{day_of_month}\t{month}\t{year}\t{day_of_year}\t{tmax}\t{tmin}\t{ppt}\n")
 
                 current_date += timedelta(days=1)

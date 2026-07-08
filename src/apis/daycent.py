@@ -62,7 +62,7 @@ class DaycentExecutor:
             with tempfile.TemporaryDirectory(suffix=f'_{study_id}_{parcel_id}') as tmpdir:
                 LOGGER.info(f'Created temporary directory {tmpdir}')
 
-                self.prepare_input_files(
+                await self.prepare_input_files(
                     tmpdir=tmpdir,
                     params=study_params,
                     mapunit_key=mapunit_key,
@@ -97,9 +97,7 @@ class DaycentExecutor:
             dest_dir=tmpdir,
             start_year=params['study_start_year'],
             end_year=params['study_end_year'],
-            tmax_change=0,
-            tmin_change=0,
-            precipitation_change=0
+            wth_file=wth_file_path
         ).build()
 
         await BuildFixFile(
