@@ -46,7 +46,7 @@ class BuildSiteFile():
         TODO CHECK:: A single line with climate statistics is enough for Daycent to compute this section automatically.
         """
 
-        return ["*** Climate statistics \t site.wth"]
+        return ["*** Climate statistics site.wth"]
 
     def get_site_control_lines(self):
         lines = []
@@ -88,6 +88,16 @@ class BuildSiteFile():
         # Site aspect
         # TODO Check what value to use - Might be possible to use 'aspectrep' from SSURGO component.
         lines.append(f"{0:<18} ASPECT")
+
+        # EHORIZ | degrees
+        # Site east horizon
+        # TODO Check what value to use
+        lines.append(f"{0:<18} EHORIZ")
+
+        # WHORIZ | degrees
+        # Site west horizon
+        # TODO Check what value to use
+        lines.append(f"{0:<18} WHORIZ")
 
         # NLAYER | count | 1 - 9
         # Number of soil layers in water model (maximum of 9);used only to calculated the amount of water available forsurvival of the plant.

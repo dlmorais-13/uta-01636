@@ -6,11 +6,13 @@ import json
 from arcgis.features import Feature
 
 from src.settings import settings
+from src.apis.exec import exec
 from src.utils.build_soilsin import BuildSoilsin
 from src.utils.build_weather_file import BuildWeatherFile
 from src.utils.build_site_file import BuildSiteFile
 from src.utils.build_climate_change_files import BuildClimateChangeFiles
 from src.utils.build_fix_file import BuildFixFile
+from src.utils.build_schedule_file import BuildScheduleFile
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.apis.ssurgo_api import Ssurgo_API
 
@@ -59,7 +61,10 @@ class DaycentExecutor:
         for mapunit in parcel_mapunits:
             mapunit_key = int(mapunit['id'])
             LOGGER.info(f'Starting execution for mapunit {mapunit_key}.')
-            with tempfile.TemporaryDirectory(suffix=f'_{study_id}_{parcel_id}') as tmpdir:
+
+            tmpdir = tempfile.mkdtemp(suffix=f'_{study_id}_{parcel_id}')
+
+            try:
                 LOGGER.info(f'Created temporary directory {tmpdir}')
 
                 await self.prepare_input_files(
@@ -70,7 +75,14 @@ class DaycentExecutor:
                     wth_file_path=wth_file_path,
                 )
 
+                self.execute_daycent(tmpdir)
+
                 LOGGER.info(f'Finished Daycent execution for study {study_id} and parcel {parcel_id}.')
+            except Exception as e:
+                LOGGER.error(f'Error in Daycent execution for study {study_id} and parcel {parcel_id}: {e}')
+            finally:
+                if not settings.debug: shutil.rmtree(tmpdir)
+                else: LOGGER.info(f'Not removing direction: {tmpdir}')
 
     async def prepare_input_files(self, tmpdir: str, params: dict, wth_file_path: str, mapunit_key: int, site_elevation: int | None):
         # Copy files that do not vary between executions.
@@ -105,6 +117,12 @@ class DaycentExecutor:
             soil_layer_data=soil_layer_data
         ).build()
 
+        await BuildScheduleFile(
+            dest_dir=tmpdir,
+            start_year=params['study_start_year'],
+            end_year=params['study_end_year']
+        ).build()
+
     def get_parcel_mapunits(self, parcel_id: int):
         layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
         featureSet = layer_ref.query(
@@ -119,8 +137,12 @@ class DaycentExecutor:
 
             if os.path.isfile(source_file):
                 shutil.copy(source_file, target_file)
-                print(f"Copied: {file_name}")
 
+    def execute_daycent(self, tmpdir: str):
+        daycent_path = os.path.join(tmpdir, 'DDcentEVI_rev491')
+        # return_code = exec(daycent_path, ["-s", "site", "-N", "site"], self.workingDir, logger=LOGGER)
+        return_code = exec(daycent_path, ["-s", "site"], tmpdir, logger=LOGGER)
+        print(return_code)
 
 if __name__ == '__main__':
     import asyncio

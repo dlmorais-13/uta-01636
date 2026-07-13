@@ -22,7 +22,7 @@ class BuildClimateChangeFiles():
 
     def __init__(self, dest_dir: str, start_year: int, end_year: int, wth_file: str):
         self.dest_dir = dest_dir
-        self.start_year = start_year
+        self.start_year = max(start_year, 2026)
         self.end_year = end_year
         self.wth_file = wth_file
 

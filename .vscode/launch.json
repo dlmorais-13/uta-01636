@@ -23,6 +23,9 @@
             "console": "integratedTerminal",
             "module": "${command:extension.commandvariable.file.relativeDirDots}.${fileBasenameNoExtension}",
             "cwd": "${workspaceFolder}",
+            "env": {
+                "DEBUG": "True"
+            },
             "justMyCode": false,
             "autoReload": {
                 "enable": true,

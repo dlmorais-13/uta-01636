@@ -3,6 +3,7 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
+    debug: Optional[bool] = False
     agol_url: str
     agol_client_id: str
     agol_client_secret: str

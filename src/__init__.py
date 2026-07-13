@@ -1,4 +1,6 @@
 import logging
+import os
+from src.settings import settings
 
 class RelativeSeconds(logging.Formatter):
     def format(self, record):
@@ -9,8 +11,8 @@ class RelativeSeconds(logging.Formatter):
     
 # Configure the logging
 formatter = RelativeSeconds('%(asctime)s - %(threadName)s - %(relativeCreated)fs - %(levelname)s - %(name)s - %(message)s')
+# logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
 logging.basicConfig(level=logging.INFO)
-# logging.basicConfig(level=logging.DEBUG)
 logging.root.handlers[0].setFormatter(formatter)
 
 # Limit memory usage
