@@ -1,31 +1,33 @@
-[build-system]
-requires = ["setuptools>=45", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "uta01636-daycent"
+[tool.poetry]
+name = "uta-01636"
 version = "0.1.0"
-description = ""
+description = "Agricultural Ecosystem Services: Exploring Models and Methods for Scenario Development Along the Wasatch Front, Utah"
+authors = ["Daniel Lemos de Morais <daniel.lemos@usu.edu>"]
 readme = "README.md"
-requires-python = ">=3.10,<3.11"
-authors = [ {name = "Daniel Lemos de Morais", email = "daniel.lemos@usu.edu"} ]
-dependencies = [
-    "arcgis",
-    "arcgis-mapping",
-    "colorama",
-    "rasterio",
-    "fiona",
-    "pyproj",
-    "geopandas",
-    "keyrings.alt",
-    "soildb[all]",
-    "dotenv",
-    "camel-converter",
-    "fastapi[standard]"
-]
 
-[project.optional-dependencies]
-dev = ["pytest>=9.0"]
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+arcgis = "2.4.2"
+arcgis-mapping = "4.33.1"
+colorama = "0.4.6"
+dotenv = "0.9.9"
+fastapi = "0.135.2"
+fastapi-cli = "0.0.24"
+fiona = "1.10.1"
+geopandas = "1.1.3"
+pydantic-extra-types = "2.11.1"
+pydantic-settings = "2.13.1"
+rasterio = "1.4.4"
+scipy = "1.15.3"
+soildb = "0.6.0"
+camel-converter = "5.1.0"
+
+[tool.poetry.group.dev.dependencies]
+tabulate = "^0.10.0"
 
 [tool.fastapi]
 entrypoint = "src.webapp:app"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
