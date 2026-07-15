@@ -3,6 +3,8 @@ import tempfile
 import shutil
 import logging
 import json
+from functools import reduce
+from collections import defaultdict
 from arcgis.features import Feature
 
 from src.settings import settings
@@ -35,6 +37,7 @@ class DaycentExecutor:
 
     agol_api: AgolAPI
     parcel: Feature
+    params: dict
 
     def __init__(self):
         self.agol_api = AgolAPI_Injector()
@@ -48,6 +51,7 @@ class DaycentExecutor:
             study_query_res = study_table_ref.query(where=f"study_id = {study_id}")
             study_obj = study_query_res.features[0].attributes
             study_params = json.loads(study_obj['params'])
+        self.params = study_params
 
         base_layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
         query_res = base_layer_ref.query(where=f"parcel_key = {parcel_id}", return_geometry=True, out_sr=4326)
@@ -55,8 +59,10 @@ class DaycentExecutor:
 
         site_elevation, wth_file_path = await BuildWeatherFile().build_daymet(self.parcel)
 
-        parcel_mapunits = self.get_parcel_mapunits(parcel_id)
+        parcel_mapunits = self.get_parcel_mapunits()
         LOGGER.info(f'Parcel {parcel_id} map units: {parcel_mapunits}')
+
+        results_per_unit = dict()
 
         for mapunit in parcel_mapunits:
             mapunit_key = int(mapunit['id'])
@@ -76,6 +82,7 @@ class DaycentExecutor:
                 )
 
                 self.execute_daycent(tmpdir)
+                results_per_unit[mapunit_key] = self.read_results(tmpdir, vars=['somtc', 'totalc', 'totsysc'])
 
                 LOGGER.info(f'Finished Daycent execution for study {study_id} and parcel {parcel_id}.')
             except Exception as e:
@@ -83,6 +90,9 @@ class DaycentExecutor:
             finally:
                 if not settings.debug: shutil.rmtree(tmpdir)
                 else: LOGGER.info(f'Not removing direction: {tmpdir}')
+
+        results = self.aggregate_results(results_per_unit)
+        self.upload_results(study_id=study_id, results=dict(results))
 
     async def prepare_input_files(self, tmpdir: str, params: dict, wth_file_path: str, mapunit_key: int, site_elevation: int | None):
         # Copy files that do not vary between executions.
@@ -123,11 +133,8 @@ class DaycentExecutor:
             end_year=params['study_end_year']
         ).build()
 
-    def get_parcel_mapunits(self, parcel_id: int):
-        layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
-        featureSet = layer_ref.query(
-            where=f'parcel_key = {parcel_id}', return_all_records=False, result_record_count=1, out_fields=['map_unit_data'])
-        map_unit_data = featureSet.features[0].attributes['map_unit_data']
+    def get_parcel_mapunits(self):
+        map_unit_data = self.parcel.attributes['map_unit_data']
         return json.loads(map_unit_data)
 
     def copy_base_files(self, tmpdir: str):
@@ -139,10 +146,76 @@ class DaycentExecutor:
                 shutil.copy(source_file, target_file)
 
     def execute_daycent(self, tmpdir: str):
+        # TODO Check if the execution succeeded.
         daycent_path = os.path.join(tmpdir, 'DDcentEVI_rev491')
         # return_code = exec(daycent_path, ["-s", "site", "-N", "site"], self.workingDir, logger=LOGGER)
         return_code = exec(daycent_path, ["-s", "site"], tmpdir, logger=LOGGER)
         print(return_code)
+
+    def execute_ddlist(self, tmpdir: str):
+        # TODO Check if the execution succeeded.
+        ddlist_path = os.path.join(tmpdir, 'DDlist100_rev491')
+        exec(ddlist_path, ['site', 'output', 'outvars.txt'], tmpdir, logger=LOGGER)
+
+    def upload_results(self, study_id: int, results: dict):
+        features = []
+        for year in results['totalc']:
+            value = results['totalc'][year]
+            features.append(Feature(
+                geometry=self.parcel.geometry,
+                attributes=dict(
+                    parcel_key=self.parcel.attributes['parcel_key'],
+                    study_id=study_id,
+                    simulation_date=f'{year}-01-01',
+                    carbon_stock=value
+                )
+            ))
+
+        self.agol_api.add_list(settings.agol_studies_layer_id, features)
+
+    def read_results(self, tmpdir: str, vars: list[str]):
+        self.write_outvars(tmpdir, vars)
+        self.execute_ddlist(tmpdir)
+
+        with open(os.path.join(tmpdir, 'output.lis'), 'r') as output_file:
+            # Skip first line
+            next(output_file)
+
+            headers = next(output_file)
+            var_pos = dict()
+            for index, value in enumerate(headers.split()):
+                var_pos[value] = index
+
+            # Skip empty line
+            next(output_file)
+
+            # Read the output
+            output = defaultdict(lambda: defaultdict(float))
+            for line in output_file:
+                values = line.split()
+                year = values[var_pos['time']].split('.')[0]
+                for v in vars:
+                    output[v][year] = float(values[var_pos[v]])
+
+            return output
+
+    def write_outvars(self, tmpdir: str, vars: list[str]):
+        with open(os.path.join(tmpdir, 'outvars.txt'), 'w') as outvars_file:
+            outvars_file.writelines([ f'{v}\n' for v in vars ])
+
+    def aggregate_results(self, results_per_mapunit: dict):
+        results = defaultdict(lambda: defaultdict(float))
+        parcel_mapunits = self.get_parcel_mapunits()
+
+        total_area = sum([ float(mapunit['area']) for mapunit in parcel_mapunits ])
+
+        for mapunit in parcel_mapunits:
+            mapunit_results = results_per_mapunit[int(mapunit['id'])]
+            for var in mapunit_results:
+                for year in mapunit_results[var]:
+                    results[var][year] += mapunit_results[var][year] * float(mapunit['area']) / total_area
+
+        return results
 
 if __name__ == '__main__':
     import asyncio
