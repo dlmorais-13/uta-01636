@@ -121,23 +121,3 @@ class BuildClimateChangeFiles():
             for line in lines:
                 file.write("\t".join([f'{v}' for v in line]))
                 file.write('\n')
-
-if __name__ == '__main__':
-    if os.path.exists('/tmp/tminscale.100'):
-        os.unlink('/tmp/tminscale.100')
-    if os.path.exists('/tmp/tmaxscale.100'):
-        os.unlink('/tmp/tmaxscale.100')
-    if os.path.exists('/tmp/precscale.100'):
-        os.unlink('/tmp/precscale.100')
-
-    builder = BuildClimateChangeFiles(
-        dest_dir='/tmp',
-        start_year=2021,
-        end_year=2030,
-        tmax_change=.022,
-        tmin_change=.02,
-        precipitation_change=.999
-    )
-
-    import asyncio
-    asyncio.run(builder.build())
