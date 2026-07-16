@@ -99,9 +99,9 @@ class DaycentExecutor:
                     f"Finished Daycent execution for study {study_id} and parcel {parcel_id}."
                 )
             except Exception as e:
-                LOGGER.exception(
-                    f"Error in Daycent execution for study {study_id} and parcel {parcel_id}"
-                )
+                msg = f"Error in Daycent execution for study {study_id} and parcel {parcel_id}"
+                LOGGER.exception(msg)
+                raise Exception(msg) from e
             finally:
                 if not settings.debug:
                     shutil.rmtree(tmpdir)
