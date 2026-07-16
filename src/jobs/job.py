@@ -1,4 +1,3 @@
-
 import logging
 from abc import ABC, abstractmethod
 
@@ -14,12 +13,12 @@ class Job(ABC):
 
     async def run(self, params: dict):
         try:
-            LOGGER.info(f'Running job <{self.name}>')
+            LOGGER.info(f"Running job <{self.name}>")
             await self.logic(params)
         except Exception as e:
-            LOGGER.error(f'Error executing job <{self.name}>: {e}')
+            LOGGER.error(f"Error executing job <{self.name}>: {e}")
         else:
-            LOGGER.info(f'Job executed <{self.name}>')
+            LOGGER.info(f"Job executed <{self.name}>")
 
     @abstractmethod
     async def logic(self, params: dict):

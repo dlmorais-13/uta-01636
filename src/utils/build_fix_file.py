@@ -2,7 +2,7 @@ import os
 from functools import reduce
 
 
-class BuildFixFile():
+class BuildFixFile:
     """
     Class to build the fix.100 file for Daycent execution.
     """
@@ -13,7 +13,6 @@ class BuildFixFile():
     def __init__(self, dest_dir: str, soil_layer_data: list[list[float]]):
         self.dest_dir = dest_dir
         self.soil_layer_data = soil_layer_data
-
 
     async def build(self):
         depth_list = self.build_depth_list()
@@ -28,7 +27,7 @@ class BuildFixFile():
         # TODO Check variables 'AWTL(X)'
 
         lines = [f"{l[0]:<14}{l[1]}\n" for l in lines]
-        with open(os.path.join(self.dest_dir, 'fix.100'), 'w') as file:
+        with open(os.path.join(self.dest_dir, "fix.100"), "w") as file:
             file.writelines(lines)
 
     def build_depth_list(self) -> list[float]:
@@ -43,14 +42,14 @@ class BuildFixFile():
         for layer in self.soil_layer_data:
             next_thickness += layer[0]
 
-            if (next_thickness >= 15):
+            if next_thickness >= 15:
                 depth_list.append(next_thickness)
                 next_thickness = 0
 
         # If control variable > 0, add as the last layer.
         if next_thickness > 0:
             depth_list.append(next_thickness)
-        
+
         # If more than 10 layers, it is necessary to combine until length <= 10.
         while len(depth_list) > 10:
             smallest_pair = -1
@@ -70,11 +69,14 @@ class BuildFixFile():
 
     def read_current_file(self):
         lines = []
-        with open(os.path.join(self.dest_dir, 'fix.100'), 'r') as file:
+        with open(os.path.join(self.dest_dir, "fix.100"), "r") as file:
             for l in file:
-                if not l.startswith('#'):
-                    lines.append([
-                        s.replace("\n", "").replace("\t", "")
-                        for s in l.split(' ') if s and s != "\n"
-                    ])
+                if not l.startswith("#"):
+                    lines.append(
+                        [
+                            s.replace("\n", "").replace("\t", "")
+                            for s in l.split(" ")
+                            if s and s != "\n"
+                        ]
+                    )
         return lines

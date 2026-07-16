@@ -7,7 +7,7 @@ from pandas import DataFrame
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 
 
-class BuildSiteFile():
+class BuildSiteFile:
     """
     Class to build the site.100 file for Daycent execution.
     """
@@ -18,7 +18,14 @@ class BuildSiteFile():
     nlayers: int
     components: DataFrame
 
-    def __init__(self, dest_dir: str, parcel: Feature, nlayers: int, elevation: int, components: DataFrame):
+    def __init__(
+        self,
+        dest_dir: str,
+        parcel: Feature,
+        nlayers: int,
+        elevation: int,
+        components: DataFrame,
+    ):
         self.agol_api = AgolAPI_Injector()
         self.dest_dir = dest_dir
         self.nlayers = nlayers
@@ -36,8 +43,8 @@ class BuildSiteFile():
         file_lines += self.get_mineral_initial_values()
         file_lines += self.get_water_initial_values()
 
-        file_path = os.path.join(self.dest_dir, 'site.100')
-        with open(file_path, 'w') as file:
+        file_path = os.path.join(self.dest_dir, "site.100")
+        with open(file_path, "w") as file:
             file.writelines([f"{l}\n" for l in file_lines])
 
     def get_climate_lines(self):
@@ -80,8 +87,12 @@ class BuildSiteFile():
         # SITSLP | degrees
         # Site slope
         # Here calculated as the weighted average slope of all components
-        self.components['slope_deg'] = np.degrees(np.arctan(self.components['slope_r'] / 100))
-        slope_deg = (self.components['slope_deg'] * self.components['comppct_r']).sum() / self.components['comppct_r'].sum()
+        self.components["slope_deg"] = np.degrees(
+            np.arctan(self.components["slope_r"] / 100)
+        )
+        slope_deg = (
+            self.components["slope_deg"] * self.components["comppct_r"]
+        ).sum() / self.components["comppct_r"].sum()
         lines.append(f"{int(slope_deg):<18.0f} SITSLP")
 
         # ASPECT | degrees
@@ -193,17 +204,58 @@ class BuildSiteFile():
         lines = []
         lines.append("*** Organic matter initial values")
         variables = [
-            'SOM1CI(1,1)', 'SOM1CI(1,2)', 'SOM1CI(2,1)', 'SOM1CI(2,2)', 'SOM2CI(1,1)', 'SOM2CI(1,2)', 'SOM2CI(2,1)', 'SOM2CI(2,2)', 'SOM3CI(1)',
-            'SOM3CI(2)', 'RCES1(1,1)', 'RCES1(1,2)', 'RCES1(1,3)', 'RCES1(2,1)', 'RCES1(2,2)', 'RCES1(2,3)', 'RCES2(1,1)', 'RCES2(1,2)',
-            'RCES2(1,3)', 'RCES2(2,1)', 'RCES2(2,2)', 'RCES2(2,3)', 'RCES3(1)', 'RCES3(2)', 'RCES3(3)', 'CLITTR(1,1)', 'CLITTR(1,2)', 'CLITTR(2,1)',
-            'CLITTR(2,2)', 'RCELIT(1,1)', 'RCELIT(1,2)', 'RCELIT(1,3)', 'RCELIT(2,1)', 'RCELIT(2,2)', 'RCELIT(2,3)', 'AGLCIS(1)', 'AGLCIS(2)',
-            'AGLIVE(1)', 'AGLIVE(2)', 'AGLIVE(3)', 'BGLCIS(1)', 'BGLCIS(2)', 'BGLIVE(1)', 'BGLIVE(2)', 'BGLIVE(3)', 'STDCIS(1)', 'STDCIS(2)',
-            'STDEDE(1)', 'STDEDE(2)', 'STDEDE(3)',
+            "SOM1CI(1,1)",
+            "SOM1CI(1,2)",
+            "SOM1CI(2,1)",
+            "SOM1CI(2,2)",
+            "SOM2CI(1,1)",
+            "SOM2CI(1,2)",
+            "SOM2CI(2,1)",
+            "SOM2CI(2,2)",
+            "SOM3CI(1)",
+            "SOM3CI(2)",
+            "RCES1(1,1)",
+            "RCES1(1,2)",
+            "RCES1(1,3)",
+            "RCES1(2,1)",
+            "RCES1(2,2)",
+            "RCES1(2,3)",
+            "RCES2(1,1)",
+            "RCES2(1,2)",
+            "RCES2(1,3)",
+            "RCES2(2,1)",
+            "RCES2(2,2)",
+            "RCES2(2,3)",
+            "RCES3(1)",
+            "RCES3(2)",
+            "RCES3(3)",
+            "CLITTR(1,1)",
+            "CLITTR(1,2)",
+            "CLITTR(2,1)",
+            "CLITTR(2,2)",
+            "RCELIT(1,1)",
+            "RCELIT(1,2)",
+            "RCELIT(1,3)",
+            "RCELIT(2,1)",
+            "RCELIT(2,2)",
+            "RCELIT(2,3)",
+            "AGLCIS(1)",
+            "AGLCIS(2)",
+            "AGLIVE(1)",
+            "AGLIVE(2)",
+            "AGLIVE(3)",
+            "BGLCIS(1)",
+            "BGLCIS(2)",
+            "BGLIVE(1)",
+            "BGLIVE(2)",
+            "BGLIVE(3)",
+            "STDCIS(1)",
+            "STDCIS(2)",
+            "STDEDE(1)",
+            "STDEDE(2)",
+            "STDEDE(3)",
         ]
-        lines += [
-            f"{0.1:<18.1f} {v}"
-            for v in variables
-        ]
+        lines += [f"{0.1:<18.1f} {v}" for v in variables]
         return lines
 
     def get_forest_organic_matter_initial_lines(self):
@@ -217,15 +269,39 @@ class BuildSiteFile():
         lines = []
         lines.append("*** Forest organic matter initial parameters")
         variables = [
-            'RLVCIS(1)', 'RLVCIS(2)', 'RLEAVE(1)', 'RLEAVE(2)', 'RLEAVE(3)', 'FBRCIS(1)', 'FBRCIS(2)', 'FBRCHE(1)', 'FBRCHE(2)',
-            'FBRCHE(3)', 'RLWCIS(1)', 'RLWCIS(2)', 'RLWODE(1)', 'RLWODE(2)', 'RLWODE(3)', 'FRTCIS(1)', 'FRTCIS(2)', 'FROOTE(1)',
-            'FROOTE(2)', 'FROOTE(3)', 'CRTCIS(1)', 'CRTCIS(2)', 'CROOTE(1)', 'CROOTE(2)', 'CROOTE(3)', 'WD1CIS(1)', 'WD1CIS(2)',
-            'WD2CIS(1)', 'WD2CIS(2)', 'WD3CIS(1)', 'WD3CIS(2)'
+            "RLVCIS(1)",
+            "RLVCIS(2)",
+            "RLEAVE(1)",
+            "RLEAVE(2)",
+            "RLEAVE(3)",
+            "FBRCIS(1)",
+            "FBRCIS(2)",
+            "FBRCHE(1)",
+            "FBRCHE(2)",
+            "FBRCHE(3)",
+            "RLWCIS(1)",
+            "RLWCIS(2)",
+            "RLWODE(1)",
+            "RLWODE(2)",
+            "RLWODE(3)",
+            "FRTCIS(1)",
+            "FRTCIS(2)",
+            "FROOTE(1)",
+            "FROOTE(2)",
+            "FROOTE(3)",
+            "CRTCIS(1)",
+            "CRTCIS(2)",
+            "CROOTE(1)",
+            "CROOTE(2)",
+            "CROOTE(3)",
+            "WD1CIS(1)",
+            "WD1CIS(2)",
+            "WD2CIS(1)",
+            "WD2CIS(2)",
+            "WD3CIS(1)",
+            "WD3CIS(2)",
         ]
-        lines += [
-            f"{0.1:<18.1f} {v}"
-            for v in variables
-        ]
+        lines += [f"{0.1:<18.1f} {v}" for v in variables]
         return lines
 
     def get_mineral_initial_values(self):
@@ -239,16 +315,45 @@ class BuildSiteFile():
         lines = []
         lines.append("*** Mineral initial parameters")
         variables = [
-            'MINERL(1,1)', 'MINERL(2,1)', 'MINERL(3,1)', 'MINERL(4,1)', 'MINERL(5,1)', 'MINERL(6,1)', 'MINERL(7,1)', 'MINERL(8,1)',
-            'MINERL(9,1)', 'MINERL(10,1)', 'MINERL(1,2)', 'MINERL(2,2)', 'MINERL(3,2)', 'MINERL(4,2)', 'MINERL(5,2)', 'MINERL(6,2)',
-            'MINERL(7,2)', 'MINERL(8,2)', 'MINERL(9,2)', 'MINERL(10,2)', 'MINERL(1,3)', 'MINERL(2,3)', 'MINERL(3,3)', 'MINERL(4,3)',
-            'MINERL(5,3)', 'MINERL(6,3)', 'MINERL(7,3)', 'MINERL(8,3)', 'MINERL(9,3)', 'MINERL(10,3)', 'PARENT(1)', 'PARENT(2)',
-            'PARENT(3)', 'SECNDY(1)', 'SECNDY(2)', 'SECNDY(3)', 'OCCLUD'
+            "MINERL(1,1)",
+            "MINERL(2,1)",
+            "MINERL(3,1)",
+            "MINERL(4,1)",
+            "MINERL(5,1)",
+            "MINERL(6,1)",
+            "MINERL(7,1)",
+            "MINERL(8,1)",
+            "MINERL(9,1)",
+            "MINERL(10,1)",
+            "MINERL(1,2)",
+            "MINERL(2,2)",
+            "MINERL(3,2)",
+            "MINERL(4,2)",
+            "MINERL(5,2)",
+            "MINERL(6,2)",
+            "MINERL(7,2)",
+            "MINERL(8,2)",
+            "MINERL(9,2)",
+            "MINERL(10,2)",
+            "MINERL(1,3)",
+            "MINERL(2,3)",
+            "MINERL(3,3)",
+            "MINERL(4,3)",
+            "MINERL(5,3)",
+            "MINERL(6,3)",
+            "MINERL(7,3)",
+            "MINERL(8,3)",
+            "MINERL(9,3)",
+            "MINERL(10,3)",
+            "PARENT(1)",
+            "PARENT(2)",
+            "PARENT(3)",
+            "SECNDY(1)",
+            "SECNDY(2)",
+            "SECNDY(3)",
+            "OCCLUD",
         ]
-        lines += [
-            f"{0.1:<18.1f} {v}"
-            for v in variables
-        ]
+        lines += [f"{0.1:<18.1f} {v}" for v in variables]
         return lines
 
     def get_water_initial_values(self):
@@ -262,12 +367,21 @@ class BuildSiteFile():
         lines = []
         lines.append("*** Water initial parameters")
 
-        variables = ['RWCF(1)', 'RWCF(2)', 'RWCF(3)', 'RWCF(4)', 'RWCF(5)', 'RWCF(6)',
-                     'RWCF(7)', 'RWCF(8)', 'RWCF(9)', 'RWCF(10)', 'SNLQ', 'SNOW']
-        lines += [
-            f"{0.1:<18.1f} {v}"
-            for v in variables
+        variables = [
+            "RWCF(1)",
+            "RWCF(2)",
+            "RWCF(3)",
+            "RWCF(4)",
+            "RWCF(5)",
+            "RWCF(6)",
+            "RWCF(7)",
+            "RWCF(8)",
+            "RWCF(9)",
+            "RWCF(10)",
+            "SNLQ",
+            "SNOW",
         ]
+        lines += [f"{0.1:<18.1f} {v}" for v in variables]
 
         # SNWINS | index | 0 or 1
         # Snow effect on soil surface temp
@@ -278,15 +392,12 @@ class BuildSiteFile():
         return lines
 
 
-if __name__ == '__main__':
-    if os.path.exists('/tmp/site.100'):
-        os.unlink('/tmp/site.100')
+if __name__ == "__main__":
+    if os.path.exists("/tmp/site.100"):
+        os.unlink("/tmp/site.100")
 
-    builder = BuildSiteFile(
-        dest_dir='/tmp',
-        parcel_id=211091,
-        nlayers=10
-    )
+    builder = BuildSiteFile(dest_dir="/tmp", parcel_id=211091, nlayers=10)
 
     import asyncio
+
     asyncio.run(builder.build())

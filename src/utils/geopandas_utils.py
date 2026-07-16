@@ -1,5 +1,6 @@
 from arcgis.features import FeatureSet
 
+
 class GeoPandasUtils:
 
     @staticmethod
@@ -9,14 +10,14 @@ class GeoPandasUtils:
                 features=[f for f in fs.features if f.geometry is not None],
                 geometry_type=fs.geometry_type,
                 spatial_reference=fs.spatial_reference,
-                fields=fs.fields
+                fields=fs.fields,
             ).to_geojson
         elif type(fs) is dict:
             return FeatureSet(
-                features=[f for f in fs['features'] if f['geometry'] is not None],
-                geometry_type=fs['geometryType'],
-                spatial_reference=fs['spatialReference'],
-                fields=fs['fields']
+                features=[f for f in fs["features"] if f["geometry"] is not None],
+                geometry_type=fs["geometryType"],
+                spatial_reference=fs["spatialReference"],
+                fields=fs["fields"],
             ).to_geojson
         else:
-            raise RuntimeError(f'Unknown type of FeatureSet: {type(fs)}')
+            raise RuntimeError(f"Unknown type of FeatureSet: {type(fs)}")

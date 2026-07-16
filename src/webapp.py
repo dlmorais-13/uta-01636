@@ -5,9 +5,15 @@ from fastapi.responses import FileResponse
 from fastapi.requests import Request
 from src.routers import admin, parcels, soils, studies
 
-
-STATIC_ROUTES = ['/', '/parcels', '/studies', '/admin',
-                 '/admin/data-import', '/admin/simulations', '/admin/configurations']
+STATIC_ROUTES = [
+    "/",
+    "/parcels",
+    "/studies",
+    "/admin",
+    "/admin/data-import",
+    "/admin/simulations",
+    "/admin/configurations",
+]
 
 app = FastAPI(debug=True)
 
@@ -16,10 +22,14 @@ app = FastAPI(debug=True)
 async def serve_spa(request: Request, call_next):
     # print(f'url_path: {request.url.path}')
     if request.url.path in STATIC_ROUTES:
-        return FileResponse('src/static/index.html')
+        return FileResponse("src/static/index.html")
 
-    path = Path(os.path.abspath(os.path.join(__file__, os.pardir, 'static', request.url.path[1:])))
-    print(f'path: {path} {path.exists()}')
+    path = Path(
+        os.path.abspath(
+            os.path.join(__file__, os.pardir, "static", request.url.path[1:])
+        )
+    )
+    print(f"path: {path} {path.exists()}")
     if path.exists() and path.is_file():
         return FileResponse(path.absolute())
 

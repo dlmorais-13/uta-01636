@@ -13,7 +13,7 @@ class AdminDataImport(BaseModel):
     name: str
     object_ref_id: str
     table_layer_name: Optional[str] = None
-    type: Literal['layer', 'table']
+    type: Literal["layer", "table"]
     expected_count: int
     count: Optional[int] = None
     lastEditDate: Optional[int] = None
@@ -31,63 +31,63 @@ class AdminData(BaseModel):
 
 
 ADMIN_DATA: dict[str, AdminData] = {
-    'study-area': AdminData(
-        id='study-area',
-        name='Study Area',
-        description='Layer with the study area limits.',
+    "study-area": AdminData(
+        id="study-area",
+        name="Study Area",
+        description="Layer with the study area limits.",
         imports=[
             AdminDataImport(
-                id='layer',
-                name='Layer',
-                job_name='jobs.create_study_area.CreateStudyArea',
+                id="layer",
+                name="Layer",
+                job_name="jobs.create_study_area.CreateStudyArea",
                 expected_count=11,
-                type='layer',
-                object_ref_id=settings.agol_study_area_layer_id
+                type="layer",
+                object_ref_id=settings.agol_study_area_layer_id,
             )
-        ]
+        ],
     ),
-    'base-layer': AdminData(
-        id='base-layer',
-        name='Base Layer',
-        description='Layer with the parcels in the study area limits.',
+    "base-layer": AdminData(
+        id="base-layer",
+        name="Base Layer",
+        description="Layer with the parcels in the study area limits.",
         imports=[
             AdminDataImport(
-                id='parcels',
-                name='Parcels with historic data',
-                job_name='jobs.create_base_layer.CreateBaseLayer',
+                id="parcels",
+                name="Parcels with historic data",
+                job_name="jobs.create_base_layer.CreateBaseLayer",
                 expected_count=0,
-                type='layer',
-                object_ref_id=settings.agol_base_layer_id
+                type="layer",
+                object_ref_id=settings.agol_base_layer_id,
             )
-        ]
+        ],
     ),
-    'prism-mesh': AdminData(
-        id='prism-mesh',
-        name='PRISM Mesh',
-        description='Feature Layer Set with the meshes from PRISM.',
+    "prism-mesh": AdminData(
+        id="prism-mesh",
+        name="PRISM Mesh",
+        description="Feature Layer Set with the meshes from PRISM.",
         imports=[
             AdminDataImport(
-                id='prism-mesh-800m',
-                name='PRISM Mesh 800m',
-                job_name='jobs.create_prism_mesh.CreatePrismMesh',
+                id="prism-mesh-800m",
+                name="PRISM Mesh 800m",
+                job_name="jobs.create_prism_mesh.CreatePrismMesh",
                 expected_count=99411,
-                type='layer',
+                type="layer",
                 object_ref_id=settings.agol_prism_mesh_layer_id,
-                table_layer_name='800m',
-                job_params={ 'resolution': '800m', 'delete': True }
+                table_layer_name="800m",
+                job_params={"resolution": "800m", "delete": True},
             ),
             AdminDataImport(
-                id='prism-mesh-4km',
-                name='PRISM Mesh 4km',
-                job_name='jobs.create_prism_mesh.CreatePrismMesh',
+                id="prism-mesh-4km",
+                name="PRISM Mesh 4km",
+                job_name="jobs.create_prism_mesh.CreatePrismMesh",
                 expected_count=99411,
-                type='layer',
+                type="layer",
                 object_ref_id=settings.agol_prism_mesh_layer_id,
-                table_layer_name='4km',
-                job_params={ 'resolution': '4km', 'delete': True }
-            )
-        ]
-    )
+                table_layer_name="4km",
+                job_params={"resolution": "4km", "delete": True},
+            ),
+        ],
+    ),
 }
 
 
@@ -102,45 +102,52 @@ def get_data_point(agol: AgolAPI, data_id: str) -> AdminData:
 
 def calculate_import_data(agol: AgolAPI, import_data: AdminDataImport):
 
-    if import_data.type == 'layer':
+    if import_data.type == "layer":
         agol_obj_ref = agol.get_layer_ref(import_data.object_ref_id)
-    elif import_data.type == 'table':
+    elif import_data.type == "table":
         agol_obj_ref = agol.get_table_ref(import_data.object_ref_id)
 
     if agol_obj_ref:
         jobManager = JobManager(agol)
         import_data.count = agol_obj_ref.query(return_count_only=True)
-        import_data.lastEditDate = agol_obj_ref.properties['editingInfo']['lastEditDate']
+        import_data.lastEditDate = agol_obj_ref.properties["editingInfo"][
+            "lastEditDate"
+        ]
         import_data.url = f'{settings.agol_mapviewer_base_url}?layer={agol_obj_ref.properties["serviceItemId"]}'
 
         try:
             job_status = jobManager.get_status(import_data.job_name)
             match job_status:
                 case JobStatus.CREATED | JobStatus.CLAIMED:
-                    import_data.status = 'scheduled'
+                    import_data.status = "scheduled"
                 case JobStatus.RUNNING:
-                    import_data.status = 'in-progress'
+                    import_data.status = "in-progress"
         except Exception as e:
-            LOGGER.debug(f'Job status exception: {e}')
+            LOGGER.debug(f"Job status exception: {e}")
 
         if not import_data.status:
-            if import_data.expected_count > 0 and import_data.count == import_data.expected_count:
-                import_data.status = 'fully-imported'
+            if (
+                import_data.expected_count > 0
+                and import_data.count == import_data.expected_count
+            ):
+                import_data.status = "fully-imported"
             elif import_data.expected_count > 0 and import_data.count > 0:
-                import_data.status = 'partially-imported'
+                import_data.status = "partially-imported"
             elif import_data.expected_count > 0 and import_data.count == 0:
-                import_data.status = 'not-imported'
+                import_data.status = "not-imported"
             elif import_data.count == 0:
-                import_data.status = 'not-imported'
+                import_data.status = "not-imported"
             else:
-                import_data.status = 'fully-imported'
+                import_data.status = "fully-imported"
 
     else:
         import_data.count = 0
-        import_data.status = 'not-imported'
+        import_data.status = "not-imported"
 
 
-def get_import_data(agol: AgolAPI, data_id: str, import_data_id: str) -> AdminDataImport:
+def get_import_data(
+    agol: AgolAPI, data_id: str, import_data_id: str
+) -> AdminDataImport:
     data_point: AdminData = ADMIN_DATA[data_id]
     import_data = next((i for i in data_point.imports if i.id == import_data_id), None)
     import_data = import_data.model_copy()
