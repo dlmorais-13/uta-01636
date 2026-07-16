@@ -171,7 +171,6 @@ class DaycentExecutor:
                 shutil.copy(source_file, target_file)
 
     def execute_daycent(self, tmpdir: str):
-        # TODO Check if the execution succeeded.
         daycent_path = os.path.join(tmpdir, "DDcentEVI_rev491")
         # return_code = exec(daycent_path, ["-s", "site", "-N", "site"], self.workingDir, logger=LOGGER)
         return_code = exec(
@@ -184,7 +183,6 @@ class DaycentExecutor:
         print(return_code)
 
     def execute_ddlist(self, tmpdir: str):
-        # TODO Check if the execution succeeded.
         ddlist_path = os.path.join(tmpdir, "DDlist100_rev491")
         exec(
             ddlist_path,
