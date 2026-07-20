@@ -116,8 +116,8 @@ class BuildSiteFile:
         lines.append(f"{nlayer:<18} NLAYER")
 
         # NLAYPG | count | 1 - NLAYER
-        # Number of soil layers in the top level of the water model; determines avh2o(1), used for plant growth and rootdeath.
-        # Overwritten by values ofclaypg or tlaypg in thecrop.100 or tree.100 files.
+        # Number of soil layers in the top level of the water model; determines avh2o(1), used for plant growth and root death.
+        # Overwritten by values ofclaypg or tlaypg in the crop.100 or tree.100 files.
         # Max = NLAYER
         # TODO Check what value to use
         lines.append(f"{min(nlayer, 0):<18} NLAYPG")
@@ -130,7 +130,7 @@ class BuildSiteFile:
         lines.append(f"{.5:<18.2f} DRAIN")
 
         # BASEF | fraction | 0.0 – 1.0
-        # Fraction of the soil water content of layer nlayer + 1 whichis lost via base flow.
+        # Fraction of the soil water content of layer nlayer + 1 which is lost via base flow.
         # TODO Check what value to use
         lines.append(f"{.5:<18.2f} BASEF")
 
@@ -141,7 +141,7 @@ class BuildSiteFile:
         lines.append(f"{0:<18} SWFLAG")
 
         # PSLSRB | ?
-        # Slope term which controls the fraction of mineral P that islabile
+        # Slope term which controls the fraction of mineral P that is labile
         # TODO Check what value to use
         lines.append(f"{1:<18.1f} PSLSRB")
 
@@ -157,7 +157,7 @@ class BuildSiteFile:
         lines.append("*** External nutrient input parameters")
 
         # EPNFA(1) | g N m⁻² yr⁻¹
-        # Intercept value for determining the effect of annual precipitation on atmospheric N fixation (wet and drydeposition)
+        # Intercept value for determining the effect of annual precipitation on atmospheric N fixation (wet and dry deposition)
         # TODO Check what value to use
         lines.append(f"{0:<18.2f} EPNFA(1)\t0.21 9/1/11 billp")
 
@@ -167,7 +167,7 @@ class BuildSiteFile:
         lines.append(f"{0:<18.2f} EPNFA(2)\t0.0028 9/1/11 billp")
 
         # EPNFS(1) | g N m⁻² yr⁻¹
-        # Intercept value for determining the effect of annual precipitation on non-symbiotic soil N fixation; not used iffix.100 value nsnfix = 1
+        # Intercept value for determining the effect of annual precipitation on non-symbiotic soil N fixation; not used if fix.100 value nsnfix = 1
         # TODO Check what value to use
         lines.append(f"{30:<18.4f} EPNFS(1)")
 
@@ -182,7 +182,7 @@ class BuildSiteFile:
         lines.append(f"{0:<18.1f} SATMOS(1)")
 
         # SATMOS(2) | g S m⁻² yr⁻¹ cm⁻¹ | 0.0 – 1.0
-        # Slope value for atmospheric S inputs as a linear function ofannual precipitation
+        # Slope value for atmospheric S inputs as a linear function of annual precipitation
         # TODO Check what value to use
         lines.append(f"{0:<18.1f} SATMOS(2)")
 

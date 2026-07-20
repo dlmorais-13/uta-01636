@@ -14,6 +14,13 @@ class BuildClimateChangeFiles:
     - tminscale.dat: modifier for minimum temperature.
     - tmaxscale.dat: modifier for maximum temperature.
     - precscale.dat: modifier for precipitation.
+
+    Monthly groupings:
+    - Oct to Nov
+    - Dec to Feb
+    - Mar to May
+    - Jun to Jul
+    - Aug to Sep
     """
 
     dest_dir: str

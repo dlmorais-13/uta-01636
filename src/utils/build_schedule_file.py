@@ -33,7 +33,6 @@ class BuildScheduleFile:
         lines.append([-1, "Labeling year"])
 
         # Microcosm (Deprecated)
-        # TODO Check if necessary.
         lines.append([-1, "Microcosm"])
 
         # CO² Systems
@@ -41,11 +40,11 @@ class BuildScheduleFile:
         lines.append([-1, "CO2 Systems"])
 
         # Soil pH shift option
-        # TODO Check what value to use
+        # TODO Check what value to use - Mostly likely not used.
         lines.append([-1, "pH shift"])
 
         # Soil warming
-        # TODO Check what value to use
+        # Not used in the study.
         lines.append([-1, "Soil warming"])
 
         # Nitrogen input scalar option
