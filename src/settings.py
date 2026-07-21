@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     agol_base_layer_id: str
     agol_base_layer_view_id: str
     agol_studies_layer_id: str
+    agol_studies_layer_view_id: str
     agol_prism_mesh_layer_id: str
     agol_prism_data_layer_id: str
     ssurgo_mapunits_layer_id: str

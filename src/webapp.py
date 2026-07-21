@@ -8,11 +8,14 @@ from src.routers import admin, parcels, soils, studies
 STATIC_ROUTES = [
     "/",
     "/parcels",
-    "/studies",
     "/admin",
     "/admin/data-import",
     "/admin/simulations",
     "/admin/configurations",
+]
+
+STATIC_ROUTE_PREFIXES = [
+    "/studies"
 ]
 
 app = FastAPI(debug=True)
@@ -20,8 +23,10 @@ app = FastAPI(debug=True)
 
 @app.middleware("http")
 async def serve_spa(request: Request, call_next):
-    # print(f'url_path: {request.url.path}')
-    if request.url.path in STATIC_ROUTES:
+    if (
+        request.url.path in STATIC_ROUTES or 
+        next((r for r in STATIC_ROUTE_PREFIXES if request.url.path.startswith(r)), None) is not None
+    ):
         return FileResponse("src/static/index.html")
 
     path = Path(

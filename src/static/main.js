@@ -1,10 +1,11 @@
 import * as Vue from 'vue';
-import { loadModule } from 'vue-sfc-loader'
-import { createRouter, createWebHistory } from 'vue-router'
+import * as VueRouter from 'vue-router';
+import { loadModule } from 'vue-sfc-loader';
 
 const options = {
     moduleCache: {
         vue: Vue,
+        'vue-router': VueRouter
     },
 
     async getFile(url) {
@@ -24,8 +25,8 @@ const options = {
     }
 };
 
-const router = createRouter({
-  history: createWebHistory(),
+const router = VueRouter.createRouter({
+  history: VueRouter.createWebHistory(),
   routes: [{
       path: '',
       component: () => loadModule('/pages/home-page.vue', options)
@@ -37,6 +38,11 @@ const router = createRouter({
     {
       path: '/studies',
       component: () => loadModule('/pages/studies-page.vue', options)
+    },
+    {
+      name: 'studies-view',
+      path: '/studies/:id1/:id2?',
+      component: () => loadModule('/pages/studies-view-page.vue', options)
     },
     {
       path: '/admin',
