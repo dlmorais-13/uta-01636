@@ -6,6 +6,7 @@
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Filters</th>
                         <th>Parameters</th>
                         <th>Dates</th>
                         <th>Status</th>
@@ -15,6 +16,16 @@
                 <tbody>
                     <tr v-for="study in studies">
                         <td>{{ study.study_id }}</td>
+                        <td>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
+                                <template v-for="(f, fIdx) in study.filters" :key="fIdx">
+                                    <StudyParameter
+                                        :name="getParameterName(f)"
+                                        :value="getParameterValue(f)">
+                                    </StudyParameter>
+                                </template>
+                            </div>
+                        </td>
                         <td>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
                                 <template v-for="(p, pIdx) in study.params" :key="pIdx">
@@ -42,7 +53,10 @@
                         </td>
                         <td>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
-                                <button class="btn btn-sm btn-primary" :disabled="study.status != 'completed'">Open</button>
+                                <router-link class="btn btn-sm btn-primary" :disabled="study.status != 'completed'"
+                                    :to="{ name: 'studies-view', params: { id1: study.study_id } }">
+                                    Open
+                                </router-link>
                                 <button class="btn btn-sm btn-secondary" :disabled="study.status != 'completed'">Compare</button>
                             </div>
                         </td>

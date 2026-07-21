@@ -8,6 +8,11 @@ from src.settings import settings
 router = APIRouter(prefix="/api/studies")
 
 
+@router.get("/config/view_service_id")
+async def get_parcels_view_service_id():
+    return settings.agol_studies_layer_view_id
+
+
 @router.get("/")
 async def get_studies(api: Annotated[AgolAPI, Depends(AgolAPI_Injector)]):
     study_table_ref = api.get_table_ref(settings.agol_studies_layer_id)
@@ -17,6 +22,10 @@ async def get_studies(api: Annotated[AgolAPI, Depends(AgolAPI_Injector)]):
     )
 
     return [
-        {**f.attributes, "params": json.loads(f.attributes["params"])}
+        {
+            **f.attributes, 
+            "filters": json.loads(f.attributes["filters"]),
+            "params": json.loads(f.attributes["params"])
+        }
         for f in feats.features
     ]
