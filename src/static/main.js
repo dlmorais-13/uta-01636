@@ -22,6 +22,10 @@ const options = {
 
     log(type, ...args) {
         console.log(type, ...args);
+    },
+
+    isCustomElement(tag) { 
+      return tag.startsWith('arcgis-');
     }
 };
 
@@ -70,6 +74,6 @@ const router = VueRouter.createRouter({
 });
 
 const app = Vue.createApp(Vue.defineAsyncComponent(() => loadModule('/components/main.vue', options)));
-app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('arcgis-');
+// app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('arcgis-');
 app.use(router);
 app.mount('#app');

@@ -3,9 +3,11 @@
     <arcgis-map id="parcels-map" basemap="streets-vector" class="h-auto w-100" popup-disabled="true">
       <arcgis-zoom slot="top-left"></arcgis-zoom>
 
-      <div class="bg-white p-3 position-absolute shadow" style="top: 1em; right: 1em;" v-if="totalCarbonStock !== null">
+      <div class="bg-white p-3 position-absolute shadow" style="top: 1em; right: 1em;" v-if="totalCarbonStock.length">
         <div>Total Carbon Stock:</div>
-        <strong>{{ Number(totalCarbonStock).toFixed(3) }} Mg C / ha</strong>
+        <strong v-for="(tcs, idx) of totalCarbonStock" :key="idx" class="d-block">
+          Study {{ studies[idx].code }}: {{ tcs.toFixed(3) }} Mg C / ha
+        </strong>
       </div>
     </arcgis-map>
 
@@ -18,12 +20,14 @@
 import ParcelsMap from '../components/parcels-map.vue';
 import { useRoute } from 'vue-router';
 import { onMounted, ref } from 'vue';
+import LayerMerger from '../utils/layer-merger.mjs';
 
 const route = useRoute();
-const id1 = route.params.id1;
-const id2 = route.params.id2;
 
-const totalCarbonStock = ref(null);
+const studies = ref([{ id: route.params.id1, code: 'A' }]);
+if (route.params.id2) studies.value.push({ id: route.params.id2, code: 'B' });
+
+const totalCarbonStock = ref([]);
 
 const serviceIdResp = await fetch('/api/studies/config/view_service_id');
 const serviceId = await serviceIdResp.json();
@@ -46,10 +50,6 @@ const [
   "@arcgis/core/core/reactiveUtils.js"
 ]);
 
-let definitionExpression = `study_id = ${id1}`
-if (id2) definitionExpression += ` or study_id = ${id2}`
-
-// 1. Define the labeling behavior and styling.
 const numberLabelClass = {
   // Autocasts as a new LabelClass.
   symbol: {
@@ -90,20 +90,49 @@ const gradientRenderer = new SimpleRenderer({
   visualVariables: [colorVisualVariable] // Injects the gradient logic
 });
 
-const featureLayer = new FeatureLayer({
+const featureLayers = studies.value.map(study => new FeatureLayer({
   portalItem: { id: serviceId },
   outFields: ["*"],
   // minScale: 500000,
   // maxScale: 1000,
   renderer: gradientRenderer,
   popupEnabled: true,
-  definitionExpression,
-  labelingInfo: [numberLabelClass],
+  definitionExpression: `study_id = '${study.id}'`,
+  // labelingInfo: [numberLabelClass],
   timeInfo: {
     startField: 'simulation_date',
     interval: { unit: 'years', value: 1 }
   }
-});
+}));
+
+let diffLayer = null;
+if (featureLayers.length > 1) {
+  diffLayer = await LayerMerger.merge(featureLayers[0], featureLayers[1]);
+  diffLayer.renderer = gradientRenderer;
+  diffLayer.renderer.visualVariables[0].field = 'difference';
+  diffLayer.timeInfo = {
+    startField: 'simulation_date',
+    interval: { unit: 'years', value: 1 }
+  }
+  diffLayer.labelingInfo = [{
+    // Autocasts as a new LabelClass.
+    symbol: {
+      type: "text",
+      color: "white",
+      haloColor: "black",
+      haloSize: "2px",
+      font: {
+        size: 12,
+        family: "sans-serif",
+        weight: "bold"
+      }
+    },
+    labelPlacement: "always-horizontal",
+    labelExpressionInfo: {
+      expression: "Concatenate(Round($feature.difference, 3), ' Mg C / ha')"
+    }
+  }];
+}
 
 onMounted(async () => {
   const viewElement = document.querySelector("arcgis-map");
@@ -115,51 +144,61 @@ onMounted(async () => {
     }
   });
 
-  await viewElement.viewOnReady(); // Wait for the properties to be ready.
+  // Wait for the properties to be ready.
+  await viewElement.viewOnReady();
 
-  viewElement.map.add(featureLayer); // Use the map property to add the layer.
-  const view = await viewElement.whenLayerView(featureLayer); // Wait for the layer to be usable.
+  // Use the map property to add the layers.
+  viewElement.map.addMany(featureLayers); 
+  // Wait for the layers to be usable.
+  const views = await Promise.all(featureLayers.map(fl => viewElement.whenLayerView(fl)))
+
+  if (diffLayer) {
+    viewElement.map.add(diffLayer);
+    await viewElement.whenLayerView(diffLayer);
+  }
 
   // Zoom to the layer's full extent and customize the animation.
-  const extentRespose = await featureLayer.queryExtent();
+  const extentRespose = await featureLayers[0].queryExtent();
   await viewElement.goTo(extentRespose.extent, { animate: false, duration: 0 });
 
   // Constrain navigation to the layer's full extent.
-  viewElement.constraints = { geometry: featureLayer.fullExtent };
+  viewElement.constraints = { geometry: featureLayers[0].fullExtent };
 
   const timeSliderElement = document.querySelector("arcgis-time-slider");
   timeSliderElement.labelFormatFunction = (value, type, element, layout) => {
     if (Array.isArray(value)) value = value[0];
     element.innerText = `${new Date(value).getUTCFullYear()}`;
   };
-  timeSliderElement.fullTimeExtent = featureLayer.timeInfo.fullTimeExtent;
+  timeSliderElement.fullTimeExtent = featureLayers[0].timeInfo.fullTimeExtent;
   timeSliderElement.stops = { interval: { unit: 'years', value: 1 } };
 
-  const queryTotal = async () => {
-    const statsQuery = view.layer.createQuery();
-    statsQuery.timeExtent = timeSliderElement.timeExtent;
-    statsQuery.outStatistics = [
-      {
-        onStatisticField: 'carbon_stock',
-        outStatisticFieldName: 'TotalCarbonStock',
-        statisticType: 'sum'
+  const queryTotals = async () => {
+    Promise.all(views.map(async (view, idx) => {
+      const statsQuery = view.layer.createQuery();
+      statsQuery.timeExtent = timeSliderElement.timeExtent;
+      statsQuery.outStatistics = [
+        {
+          onStatisticField: 'carbon_stock',
+          outStatisticFieldName: 'TotalCarbonStock',
+          statisticType: 'sum'
+        }
+      ];
+      const queryResp = await view.queryFeatures(statsQuery);
+      if (queryResp.features[0] && queryResp.features[0].attributes["TotalCarbonStock"]) {
+        totalCarbonStock.value[idx] = Number(queryResp.features[0].attributes["TotalCarbonStock"]);
       }
-    ];
-    const queryResp = await view.queryFeatures(statsQuery);
-    if (queryResp.features[0]) {
-      totalCarbonStock.value = queryResp.features[0].attributes["TotalCarbonStock"];
-    }
+    }));
   }
 
   reactiveUtils.when(
-    () => !view.updating,
-    queryTotal,
+    () => views.every(v => !v.updating),
+    queryTotals,
     { initial: false }
   );
 
   reactiveUtils.watch(
     () => timeSliderElement.timeExtent,
-    queryTotal,
+    queryTotals,
     { initial: true }
   );
 });
