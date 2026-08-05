@@ -1,24 +1,36 @@
 <template>
     <span class="study-parameter">
-        <span class="study-parameter-name">{{ getFormattedName() }}</span>
-        <span class="study-parameter-value">{{ value }}</span>
+        <span class="study-parameter-name">{{ getName() }}</span>
+        <span class="study-parameter-value">{{ getValue() }}</span>
     </span>
 </template>
 
 <script setup>
 const props = defineProps({
-    name: {
-        type: String,
-        required: true
-    },
-    value: {
-        type: [String, Number],
+    parameter: {
+        type: Object,
         required: true
     }
 });
 
-function getFormattedName() {
-    return props.name;
+function getName() {
+    switch(props.parameter.type) {
+        case 'target':
+            return `${props.parameter.name}: ${props.parameter.value}`;
+            
+        default:
+            return props.parameter.name;
+    }
+}
+
+function getValue() {
+    switch(props.parameter.type) {
+        case 'target':
+            return `${Number(props.parameter.target * 100).toFixed(3)}%`;
+            
+        default:
+            return props.parameter.value;
+    }
 }
 </script>
 

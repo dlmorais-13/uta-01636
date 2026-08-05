@@ -44,6 +44,10 @@ const router = VueRouter.createRouter({
       component: () => loadModule('/pages/studies-page.vue', options)
     },
     {
+      path: '/studies/new',
+      component: () => loadModule('/pages/study-create-page.vue', options)
+    },
+    {
       name: 'studies-view',
       path: '/studies/:id1/:id2?',
       component: () => loadModule('/pages/studies-view-page.vue', options)
@@ -71,6 +75,27 @@ const router = VueRouter.createRouter({
       ]
     },
   ]
+});
+
+const [esriConfig, Error] = await $arcgis.import([
+  "@arcgis/core/config",
+  "@arcgis/core/core/Error"
+]);
+
+// Intercept all API responses globally
+esriConfig.request.interceptors.push({
+  after: function(response) {
+    // Check if the server payload contains an internal ArcGIS error
+    if (response.data && response.data.error) {
+      const apiError = response.data.error;
+      
+      // Standardize and explicitly throw the Esri SDK exception
+      throw new Error("api:request-failed", apiError.message, {
+        code: apiError.code,
+        details: apiError.details
+      });
+    }
+  }
 });
 
 const app = Vue.createApp(Vue.defineAsyncComponent(() => loadModule('/components/main.vue', options)));

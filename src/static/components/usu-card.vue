@@ -1,6 +1,6 @@
 <template>
     <div class="card border-0">
-        <h2 class="h4 card-header text-white" :class="{ 'p-1': !title }">{{ title }}</h2>
+        <h2 class="h4 card-header text-white" :class="{ 'p-2': !title }">{{ title }}</h2>
         <div class="card-body border">
             <slot></slot>
         </div>

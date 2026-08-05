@@ -503,9 +503,9 @@ if __name__ == "__main__":
     asyncio.run(
         CreateBaseLayer().logic(
             {
-                "batch_size": 200,
+                "batch_size": 1000,
                 "delete_data": True,
-                "delete_county_json": True,
+                "delete_county_json": False,
                 "delete_soils_json": False,
                 # 'parcel_id': 10239
             }

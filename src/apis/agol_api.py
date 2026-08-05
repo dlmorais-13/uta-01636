@@ -11,6 +11,7 @@ from arcgis.features import (
 from typing import cast
 from src.settings import settings
 import logging
+import threading
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class AgolAPI:
 
     gis: GIS
     config_cache: FeatureSet | None = None
+    _latest_survey_year: int | None = None
 
     def __init__(self, token: str | None = None) -> None:
         LOGGER.info(f"Authenticating to {settings.agol_url} ... ")
@@ -251,13 +253,31 @@ class AgolAPI:
             if c.attributes["NAME"].startswith(prefix)
         }
 
+    def get_latest_survey_year(self):
+        if self._latest_survey_year is None:
+            table_ref = self.get_table_ref(settings.agol_base_layer_view_id)
+            result = table_ref.query(
+                out_statistics=[
+                    {
+                        "statisticType": "max",
+                        "onStatisticField": "survey_year",
+                        "outStatisticFieldName": "max_val",
+                    }
+                ]
+            )
+            self._latest_survey_year = result.features[0].attributes["max_val"]
+        return self._latest_survey_year
+
 
 class _AgolAPI_Injector:
     api: AgolAPI | None = None
+    _lock = threading.Lock()
 
     def __call__(self):
         if self.api is None:
-            self.api = AgolAPI()
+            with self._lock:
+                if self.api is None:
+                    self.api = AgolAPI()
         return self.api
 
 

@@ -294,3 +294,28 @@ select:has(option[value=""]:checked) {
 select option {
     color: initial !important;
 }
+
+.gap-half { gap: 0.5em; }
+.gap-1 { gap: 1em; }
+.gap-1-half { gap: 1.5em; }
+.gap-2 { gap: 2em; }
+.gap-3 { gap: 3em; }
+
+.form-check {
+    display: flex !important;
+    align-items: center !important;
+}
+
+.d-grid { display: grid !important; }
+.grid-min-100 { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
+.grid-min-200 { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; }
+.grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+.grid-3 { grid-template-columns: repeat(3, 1fr) !important; }
+.grid-4 { grid-template-columns: repeat(4, 1fr) !important; }
+.grid-5 { grid-template-columns: repeat(5, 1fr) !important; }
+
+.clickable { cursor: pointer !important; }
+
+.input-group > .custom-range.form-control {
+    padding: 1.13em 1em;
+}

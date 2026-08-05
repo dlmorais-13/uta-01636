@@ -1,6 +1,13 @@
 <template>
     <div class="flex-grow-1">
-        <HeroBanner text="Studies"></HeroBanner>
+        <HeroBanner text="Studies">
+            <template v-slot:actions>
+                <router-link to="/studies/new">
+                    <button class="btn btn-primary">Create New Study</button>
+                </router-link>
+            </template>
+        </HeroBanner>
+
         <div class="container my-5">
             <table class="table table-striped">
                 <thead>
@@ -19,20 +26,14 @@
                         <td>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
                                 <template v-for="(f, fIdx) in study.filters" :key="fIdx">
-                                    <StudyParameter
-                                        :name="getParameterName(f)"
-                                        :value="getParameterValue(f)">
-                                    </StudyParameter>
+                                    <StudyParameter :parameter="f"></StudyParameter>
                                 </template>
                             </div>
                         </td>
                         <td>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
                                 <template v-for="(p, pIdx) in study.params" :key="pIdx">
-                                    <StudyParameter
-                                        :name="getParameterName(p)"
-                                        :value="getParameterValue(p)">
-                                    </StudyParameter>
+                                    <StudyParameter :parameter="p"></StudyParameter>
                                 </template>
                             </div>
                         </td>
@@ -88,28 +89,6 @@ function getStatusClass(status) {
             return 'danger';
         default:
             return 'secondary';
-    }
-}
-
-function getParameterName(param) {
-    switch(param.type) {
-        case 'limit':
-            return `${param.name}: ${param.value}`;
-            
-        case 'text':
-        default:
-            return param.name;
-    }
-}
-
-function getParameterValue(param) {
-    switch(param.type) {
-        case 'limit':
-            return `${param.target * 100}%`;
-            
-        case 'text':
-        default:
-            return param.value;
     }
 }
 </script>

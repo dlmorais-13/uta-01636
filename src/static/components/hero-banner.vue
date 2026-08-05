@@ -2,6 +2,10 @@
     <div class="hero-banner jumbotron-fluid jumbotron-full color-blend jumbotron-content-bottom-left">
         <div class="jumbotron-content xl h-bold container text-white">
             <h1 class="text-white mb-0">{{ text }}</h1>
+
+            <div v-if="$slots.actions" style="right: 3em; bottom: -2em; gap: .5em;" class="d-flex position-absolute">
+                <slot name="actions"></slot>
+            </div>
         </div>
     </div>
 </template>
