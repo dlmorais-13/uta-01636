@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex gap-half text-blue small justify-around spinner-increase">
+  <div class="d-flex gap-half small justify-around spinner-increase" :class="inheritColor ? '' : 'text-blue'">
     <div class="spinner-grow spinner-grow-sm fast-spin" role="status">
       <span class="sr-only">Loading...</span>
     </div>
@@ -11,6 +11,15 @@
     </div>
   </div>
 </template>
+
+<script setup>
+defineProps({
+  inheritColor: {
+    type: Boolean,
+    default: false
+  }
+});
+</script>
 
 <style scoped>
 .spinner-increase :nth-child(1) { animation-delay: 0ms; }

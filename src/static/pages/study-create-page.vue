@@ -162,7 +162,9 @@
             </div>
 
             <div class="mt-5">
-              <button class="btn btn-block btn-lg btn-primary">Create Study</button>
+              <ButtonSpinner class="btn btn-block btn-lg btn-primary" @click="createStudy()" :loading="savingStudy">
+                Create Study
+              </ButtonSpinner>
             </div>
           </UsuCard>
         </div>
@@ -177,7 +179,9 @@ import UsuCard from '../components/usu-card.vue';
 import StudyParameter from '../components/study-parameter.vue';
 import { ref, onMounted } from 'vue';
 import UsuSpinner from '../components/usu-spinner.vue';
+import ButtonSpinner from '../components/button-spinner.vue';
 import BaseLayerExplorer from '../utils/base-layer-explorer.mjs';
+import { useRouter } from 'vue-router';
 
 // Filters configured in the page.
 const filters = ref([]);
@@ -191,6 +195,8 @@ const parcelCount = ref(0);
 const parcelTotalArea = ref(0);
 // Indicates if the parcel statistics are being loaded.
 const loadingParcelStats = ref(false);
+// Indicates if the system is saving the study.
+const savingStudy = ref(false);
 // Stores the current configuration in the wizard.
 const dataToAdd = ref({});
 // List of the filters available. They are loaded only once.
@@ -201,6 +207,8 @@ const parametersAvailable = ref([]);
 const usFormatter = new Intl.NumberFormat('en-US');
 // Creates an instance of the base layer explorer class.
 const layerExplorer = new BaseLayerExplorer();
+
+const router = useRouter();
 
 await layerExplorer.loadBaseLayer();
 
@@ -553,6 +561,35 @@ function dataToAddValid() {
 }
 
 /**
+ * Creates the new study.
+ */
+async function createStudy() {
+  savingStudy.value = true;
+  this.validateStudyConfiguration();
+  const resp = await fetch('/api/studies/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      filters: filters.value,
+      parameters: parameters.value
+    })
+  });
+
+  if (resp.ok) {
+    const content = await resp.json();
+    if (content.OBJECTID) {
+      router.push('/studies')
+    } else {
+      savingStudy.value = false;
+    }
+  } else {
+    savingStudy.value = false;
+  }
+}
+
+/**
  * Checks if the configured filters are valid.
  */
 function validateFilters() {
@@ -570,7 +607,9 @@ function validateParameters() {
  * Checks if the study configuration is valid.
  */
 function validateStudyConfiguration() {
-  // TODO implement.
+  // TODO implement properly.
+  this.validateFilters();
+  this.validateParameters();
 }
 </script>
 

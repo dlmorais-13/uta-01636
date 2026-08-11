@@ -54,6 +54,9 @@ class AgolAPI:
             return [t for t in ref.tables if t.properties.name == table_name][0]
         return ref.tables[0] if ref else None
 
+    def get_by_id(self, layerIdOrRef: str | FeatureLayer, id: int) -> Feature:
+        return self.query(layerIdOrRef, f"OBJECTID = {id}").features[0]
+
     def query(
         self,
         layerIdOrRef: str | FeatureLayer,
@@ -220,7 +223,12 @@ class AgolAPI:
                             f'{Fore.RED}Add error: {result["error"]["description"]}{Style.RESET_ALL}'
                         )
                         raise Exception(f'Add error: {result["error"]["description"]}')
-            LOGGER.info(f"{Fore.GREEN}{len(features)} records added.{Style.RESET_ALL}")
+                LOGGER.info(
+                    f"{Fore.GREEN}{len(features)} records added.{Style.RESET_ALL}"
+                )
+                return response["addResults"]
+            else:
+                raise Exception(f"Add error: {response}")
         except Exception as e:
             LOGGER.error(f"{Fore.RED}Error adding features: {e}{Style.RESET_ALL}")
             raise RuntimeError("Error adding features") from e

@@ -53,7 +53,7 @@ class DaycentExecutor:
             study_table_ref = self.agol_api.get_table_ref(
                 settings.agol_studies_layer_id
             )
-            study_query_res = study_table_ref.query(where=f"study_id = {study_id}")
+            study_query_res = study_table_ref.query(where=f"OBJECTID = {study_id}")
             study_obj = study_query_res.features[0].attributes
             study_params = json.loads(study_obj["params"])
         self.params = study_params
