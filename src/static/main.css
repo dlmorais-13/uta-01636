@@ -306,6 +306,11 @@ select option {
     align-items: center !important;
 }
 
+.form-check-inline {
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
 .d-grid { display: grid !important; }
 .grid-min-100 { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
 .grid-min-200 { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; }

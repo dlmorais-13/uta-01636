@@ -54,9 +54,9 @@ async def save_configurations(
         configName = config.attributes["NAME"]
         existingConfigs.append(configName)
 
-        # Returns the first dictionary where 'id' is 2
+        # Returns the first dictionary with a name == configName
         desiredValue = next(
-            (dc["CONFIG"] for dc in desiredConfigs if dc["NAME"] == configName), None
+            (dc.config for dc in desiredConfigs if dc.name == configName), None
         )
 
         if desiredValue is None:
@@ -66,10 +66,15 @@ async def save_configurations(
             editList.append(config)
 
     newDesiredConfigs = [
-        dc for dc in desiredConfigs if dc["NAME"] not in existingConfigs
+        dc for dc in desiredConfigs if dc.name not in existingConfigs
     ]
     for dc in newDesiredConfigs:
-        addList.append({"attributes": dc})
+        addList.append({
+            "attributes": {
+                "NAME": dc.name,
+                "CONFIG": dc.config
+            }
+        })
 
     configTable.edit_features(adds=addList, updates=editList, deletes=deleteList)
 

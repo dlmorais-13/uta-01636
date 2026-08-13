@@ -13,7 +13,7 @@ from shapely.ops import orient
 
 from src.settings import settings
 from src.jobs.job import Job
-from src.apis.agol_api import AgolAPI
+from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.utils.geopandas_utils import GeoPandasUtils
 from src.utils.water_related_land_use_utils import WaterRelatedLandUseUtils
 
@@ -26,7 +26,7 @@ class CreateBaseLayer(Job):
     api: AgolAPI
 
     async def logic(self, params: dict):
-        self.api = AgolAPI()
+        self.api = AgolAPI_Injector()
 
         wrlu_specs = self.api.get_configs("WRLU_SPEC_")
         lower_case_counties = [
@@ -62,6 +62,7 @@ class CreateBaseLayer(Job):
         ]
         most_recent_year.sort(reverse=True)
         most_recent_year = most_recent_year[0]
+        LOGGER.info(f'Most recent survey year is {most_recent_year}')
 
         for county in lower_case_counties:
             LOGGER.info(f"Processing county {county}")
@@ -129,12 +130,12 @@ class CreateBaseLayer(Job):
 
     def build_county_geojson(self, county: str, year: int, wrlu_specs):
         if not self.county_geojson_exists(county):
-            [service_id, *columns] = wrlu_specs[f"WRLU_SPEC_{year}"].split("|")
+            [service_id, *columns] = wrlu_specs[f"WRLU_SPEC_{year}"].split(",")
 
             geojson = WaterRelatedLandUseUtils.download_service_geojson(
                 self.api, service_id, county
             )
-            LOGGER.info(f"Retrieved GeoJSON for WRLU {year} - {county}.")
+            LOGGER.info(f"Downloaded GeoJSON for WRLU {year} - {county}.")
 
             wrlu_columns = {k: v for col in columns for k, v in [col.split(":", 1)]}
             wrlu_columns["OBJECTID"] = "OBJECTID"
@@ -188,7 +189,7 @@ class CreateBaseLayer(Job):
         parcel_areas = county_base_gdf.set_index("OBJECTID").geometry.area
 
         for wrlu_year, wrlu_spec in wrlu_specs.items():
-            [service_id, *columns] = wrlu_spec.split("|")
+            [service_id, *columns] = wrlu_spec.split(",")
             year = wrlu_year.split("_")[-1]
 
             geojson = WaterRelatedLandUseUtils.download_service_geojson(
@@ -294,9 +295,8 @@ class CreateBaseLayer(Job):
         history_to_add = self.build_history_to_save(history, wrlu_specs)
 
         if parcel_id is None:
-            self.api.add_feature_collection(
-                settings.agol_base_layer_id,
-                [{"id": 0, "adds": features_to_add}, {"id": 1, "adds": history_to_add}],
+            self.api.add_features_to_collection(
+                settings.agol_base_layer_id, 0, features_to_add, 1, history_to_add
             )
         else:
             # If there is a parcel defined, just print for debugging.
@@ -307,7 +307,7 @@ class CreateBaseLayer(Job):
         self, layer: GeoDataFrame, county: str, wrlu_specs: dict, most_recent_year: int
     ):
         [_, *most_recent_columns] = wrlu_specs[f"WRLU_SPEC_{most_recent_year}"].split(
-            "|"
+            ","
         )
         basin_column_name = [
             col_spec.split(":")[0]
@@ -372,7 +372,7 @@ class CreateBaseLayer(Job):
             ][0]
 
             wrlu_spec = wrlu_specs[f"WRLU_SPEC_{year}"]
-            [_, *columns] = wrlu_spec.split("|")
+            [_, *columns] = wrlu_spec.split(",")
 
             survey_year = ""
             irr_type = ""
@@ -504,8 +504,8 @@ if __name__ == "__main__":
         CreateBaseLayer().logic(
             {
                 "batch_size": 1000,
-                "delete_data": True,
-                "delete_county_json": False,
+                "delete_data": False,
+                "delete_county_json": True,
                 "delete_soils_json": False,
                 # 'parcel_id': 10239
             }

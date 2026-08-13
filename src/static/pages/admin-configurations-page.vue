@@ -92,12 +92,16 @@ if (props.credentials) {
                     acc['WRLU_SPECS'] = acc['WRLU_SPECS'] || [];
                     acc['WRLU_SPECS'].push({
                         year: c.name.split('_')[2],
-                        config: c.config.split('|')
+                        config: c.config
                     });
                     break;
                 default:
                     acc[c.name] = { config: c.config, ObjectId: c.ObjectId };
                     break;
+            }
+
+            if (acc['WRLU_SPECS']) {
+                acc['WRLU_SPECS'].sort((s1, s2) => s2.year - s1.year);
             }
 
             return acc;
@@ -123,9 +127,36 @@ const periodicities = [
 ]
 
 async function saveConfigurations() {
+    const configs = [];
+    for (let key of Object.keys(editableConfigs.value)) {
+        switch (key) {
+            case 'WRLU_SPECS':
+                editableConfigs.value[key].forEach(spec => {
+                    configs.push({
+                        name: `WRLU_SPEC_${spec.year}`,
+                        config: spec.config
+                    });
+                });
+                break;
+            case 'STUDY_AREA_COUNTIES':
+                configs.push({ 
+                    name: key, 
+                    config: editableConfigs.value[key].config.join(',')
+                });
+                break;
+            default:
+                configs.push({ name: key, config: editableConfigs.value[key].config });
+                break;
+        }
+    }
+
     await fetch('/api/admin/configurations', {
         method: 'PUT',
-        headers: { 'Authorization': `bearer ${props.credentials.token}` }
+        headers: { 
+            'Authorization': `bearer ${props.credentials.token}`, 
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(configs)
     });
 }
 </script>
