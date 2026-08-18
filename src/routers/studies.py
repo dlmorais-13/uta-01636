@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends
-from typing import Annotated
-import json
-from arcgis.features import Feature
-import logging
-from datetime import datetime as dt
+"""
+File to configure the routes related to studies.
+"""
 
-from src.apis.agol_api import AgolAPI, AgolAPI_Injector
+from fastapi import APIRouter
+import logging
+
 from src.settings import settings
+from src.jobs.job_manager import JobManager
+from src.models.study_repository import StudyRepository, StudyColumns
 
 router = APIRouter(prefix="/api/studies")
 LOGGER = logging.getLogger(__name__)
@@ -14,52 +15,45 @@ LOGGER = logging.getLogger(__name__)
 
 @router.get("/config/view_service_id")
 async def get_parcels_view_service_id():
+    """
+    Gets the ID in ArcGIS Online of the public layer view
+    with studies list and data.
+    """
+
     return settings.agol_studies_layer_view_id
 
 
 @router.get("/")
-async def get_studies(api: Annotated[AgolAPI, Depends(AgolAPI_Injector)]):
-    study_table_ref = api.get_table_ref(settings.agol_studies_layer_id)
-    feats = study_table_ref.query(
-        where="1=1",
-        return_all_records=True,
-    )
+async def get_studies():
+    """
+    Gets the complete list of studies in the system.
+    
+    TODO: Might be necessary to page this or move entirely 
+        to frontend using the public view.
+    """
 
-    return [
-        {
-            **f.attributes,
-            "filters": json.loads(f.attributes["filters"]),
-            "params": json.loads(f.attributes["params"]),
-        }
-        for f in feats.features
-    ]
+    return StudyRepository().list_studies()
 
 
 @router.post("/")
-async def create_study(api: Annotated[AgolAPI, Depends(AgolAPI_Injector)], body: dict):
-    LOGGER.info(body)
-    table_ref = api.get_table_ref(settings.agol_studies_layer_id)
+async def create_study(body: dict):
+    """
+    Creates a new study in the system using the body data as
+    configuration source.
 
-    # TODO How do define owner?
-    result = api.add_list(
-        table_ref,
-        [
-            Feature(
-                attributes=dict(
-                    filters=json.dumps(body["filters"]),
-                    params=json.dumps(body["parameters"]),
-                    owner="a02462576@usu.edu_usuonline",
-                    status="created",
-                    created_date=dt.now().isoformat(timespec="seconds"),
-                )
-            )
-        ],
-    )
+    Args:
+        body: The configuration for the study.
 
-    study_id = result[0]["objectId"]
-    study = api.get_by_id(table_ref, study_id)
-    return {
-        **study.attributes,
-        "filters": json.loads(study.attributes["filters"]),
-        "params": json.loads(study.attributes["params"]),
-    }
+    Returns:
+        The created study already with primary key set.
+    """
+
+    study = StudyRepository().create_study(body["filters"], body["parameters"])
+    if study:
+        jobManager = JobManager()
+        jobManager.add(
+            "jobs.process_created_study.ProcessCreatedStudy",
+            dict(study_id=study[StudyColumns.OBJECTID.value]),
+        )
+
+    return study

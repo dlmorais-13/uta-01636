@@ -125,7 +125,7 @@ let soilDataWidget = new CustomContent({
                 const soilData = JSON.parse(event.graphic.attributes.map_unit_data).sort((a, b) => b.area - a.area);
                 const soilIdsParam = soilData.map(s => `map_unit_ids=${s.id}`).join('&');
         
-                const soilsResp = await fetch(`/api/soils/basic_data?${soilIdsParam}`);
+                const soilsResp = await fetch(`/api/parcels/soils/basic_data?${soilIdsParam}`);
                 const soils = await soilsResp.json();
                 
                 const originalFeatureQueryResponse = await featureLayer.queryFeatures({

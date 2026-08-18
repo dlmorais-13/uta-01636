@@ -7,14 +7,29 @@ from arcgis.features import FeatureLayer, FeatureSet
 from src.settings import settings
 from src.apis.agol_api import AgolAPI
 from src.utils.geopandas_utils import GeoPandasUtils
+from src.models.config_repository import ConfigRepository
 
 LOGGER = logging.getLogger(__name__)
 
 
 class WaterRelatedLandUseUtils:
+    """
+    Class with utility function related to WRLU data.
+    """
 
     @staticmethod
     def download_service_geojson(api: AgolAPI, service_id, county):
+        """
+        Download the data from a WRLU survey as GeoJson. Only the
+        data from a given county is fetched. This method stores
+        a cache of the downloaded data and uses it if necessary.
+
+        Args:
+            api: The ArcGIS API instance.
+            service_id: The ID in ArcGIS for the WRLU layer.
+            county: The county to filter the data.
+        """
+
         geojson_path = os.path.join(
             settings.workdir,
             "geojson",
@@ -23,17 +38,19 @@ class WaterRelatedLandUseUtils:
         path = Path(geojson_path)
 
         if not path.exists():
+            config_repository: ConfigRepository = ConfigRepository()
+
             ref: FeatureLayer = api.get_layer_ref(service_id)
-            wrlu_land_use_columns = api.get_config("WRLU_LAND_USE_COLUMNS").split(",")
+            wrlu_land_use_columns = config_repository.get_config("WRLU_LAND_USE_COLUMNS").split(",")
             land_use_column = WaterRelatedLandUseUtils.get_land_use_column(
                 ref, wrlu_land_use_columns
             )
-            wrlu_land_use_values = api.get_config("WRLU_LAND_USE_VALUES").split(",")
+            wrlu_land_use_values = config_repository.get_config("WRLU_LAND_USE_VALUES").split(",")
             land_use_values: str = ",".join(
                 map(lambda v: f"'{v}'", wrlu_land_use_values)
             )
 
-            wrlu_county_columns = api.get_config("WRLU_COUNTY_COLUMNS").split(",")
+            wrlu_county_columns = config_repository.get_config("WRLU_COUNTY_COLUMNS").split(",")
             county_column = WaterRelatedLandUseUtils.get_county_column(
                 ref, wrlu_county_columns
             )
@@ -64,6 +81,23 @@ class WaterRelatedLandUseUtils:
     def get_land_use_column(
         featureLayer: FeatureLayer, wrlu_land_use_columns: list[str]
     ) -> str:
+        """
+        Gets the name of the column in the FeatureLayer from WRLU that
+        represents the land use by intersecting the possible land use
+        columns with the columns existing in the layer.
+
+        Args:
+            feature_layer: The layer to look for the column.
+            wrlu_land_use_columns: The list of possible columns with
+                land use data.
+
+        Returns:
+            The column found.
+
+        Raises:
+            RuntimeError: if no column is found.
+        """
+        
         columns = list(
             set([f["name"] for f in featureLayer.properties.fields])
             & set(wrlu_land_use_columns)
@@ -80,6 +114,23 @@ class WaterRelatedLandUseUtils:
     def get_county_column(
         featureLayer: FeatureLayer, wrlu_county_columns: list[str]
     ) -> str:
+        """
+        Gets the name of the column in the FeatureLayer from WRLU that
+        represents the county by intersecting the possible county
+        columns with the columns existing in the layer.
+
+        Args:
+            feature_layer: The layer to look for the column.
+            wrlu_county_columns: The list of possible columns with
+                county data.
+
+        Returns:
+            The column found.
+
+        Raises:
+            RuntimeError: if no column is found.
+        """
+        
         columns = list(
             set([f["name"] for f in featureLayer.properties.fields])
             & set(wrlu_county_columns)

@@ -1,5 +1,6 @@
 from src.jobs.job import Job
-from src.apis.agol_api import AgolAPI
+from src.apis.agol_api import AgolAPI, AgolAPI_Injector
+from src.models.config_repository import ConfigRepository
 from arcgis.features import FeatureSet
 from src.settings import settings
 import logging
@@ -8,9 +9,21 @@ LOGGER = logging.getLogger(__name__)
 
 
 class CreateStudyArea(Job):
+    """
+    Job to create the study area in ArcGIS Online.
+    
+    This job uses the public layer with all counties in the US
+    and filter using the counties configured in the configuration
+    table.
+    """
 
-    async def logic(self, params: dict):
-        api = AgolAPI()
+    async def logic(self, _: dict):
+        """
+        Executes the job.
+        """
+
+        api: AgolAPI = AgolAPI_Injector()
+        config_repository: ConfigRepository = ConfigRepository()
 
         usa_census_counties_layer_ref = api.get_layer_ref(
             settings.usa_census_counties_layer_id
@@ -18,7 +31,7 @@ class CreateStudyArea(Job):
         counties = ", ".join(
             map(
                 lambda c: f"'{c} County'",
-                api.get_config("STUDY_AREA_COUNTIES").split(","),
+                config_repository.get_config("STUDY_AREA_COUNTIES").split(","),
             )
         )
         filter = f"STATE_NAME = 'Utah' AND NAME IN ({counties})"

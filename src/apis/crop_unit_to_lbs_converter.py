@@ -1,3 +1,8 @@
+"""
+This file contatins a conversion method of the different units 
+of measurement of potential production in SSURGO into pounds (lbs).
+"""
+
 CONVERSION_TABLE = {
     "": 0,
     "Cwt": 100,
@@ -81,6 +86,21 @@ CONVERSION_TABLE = {
 
 
 def crop_unit_to_lbs(crop: str, input_unit: str, input_value: float):
+    """
+    Convert the crop from a given unit to pounds.
+
+    Args:
+        crop: The crop name.
+        input_unit: The original unit of measurement.
+        input_value: The original value of measurement.
+
+    Returns:
+        The value converted to pounds (lbs).
+
+    Raises:
+        ValueError: If there is no convertion value from the pair crop and input_unit.
+    """
+
     if not input_unit in CONVERSION_TABLE:
         raise ValueError(f"Unknown input_unit {input_unit}")
 

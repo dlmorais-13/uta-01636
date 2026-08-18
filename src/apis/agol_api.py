@@ -14,25 +14,32 @@ import logging
 import threading
 
 LOGGER = logging.getLogger(__name__)
+_SECRET_TOKEN = object()
 
 
 class AgolAPI:
+    """
+    Class used to interact with ArcGIS Online (AGOL) api.
+    Should be instantiated using only the injector AgolAPI_Injector.
+    """
 
     gis: GIS
-    config_cache: FeatureSet | None = None
-    _latest_survey_year: int | None = None
+    """Reference to the api."""
 
-    def __init__(self, token: str | None = None) -> None:
+    _latest_survey_year: int | None = None
+    """Cache for the year of the last survey in the system."""
+
+    def __init__(self, secret_token):
+        if secret_token is not _SECRET_TOKEN:
+            raise PermissionError("Constructor is private.")
+
         LOGGER.info(f"Authenticating to {settings.agol_url} ... ")
         try:
-            if token:
-                self.gis = GIS(url=settings.agol_url, token=token)
-            else:
-                self.gis = GIS(
-                    url=settings.agol_url,
-                    client_id=settings.agol_client_id,
-                    client_secret=settings.agol_client_secret,
-                )
+            self.gis = GIS(
+                url=settings.agol_url,
+                client_id=settings.agol_client_id,
+                client_secret=settings.agol_client_secret,
+            )
             LOGGER.info(f"{Fore.GREEN}✓ Authentication succeed.{Style.RESET_ALL}")
         except Exception as e:
             LOGGER.error(f"{Fore.RED}✕ Authentication failed: {e}{Style.RESET_ALL}")
@@ -41,6 +48,19 @@ class AgolAPI:
             ) from e
 
     def get_layer_ref(self, layer_id: str, layer_name: str = None) -> FeatureLayer:
+        """
+        Returns the reference to a layer in AGOL given its ID.
+        If the name is provided, return the sublayer with the given name, else
+        returns the first sublayer in the layer.
+
+        Args:
+            layer_id: ID of the layer in AGOL.
+            layer_name: Name of the sublayer to retrieve, defaults to the first sublayer.
+
+        Returns:
+            The reference to the feature layer.
+        """
+
         flc: FeatureLayerCollection = FeatureLayerCollection.fromitem(
             self.gis.content.get(layer_id)
         )
@@ -49,12 +69,35 @@ class AgolAPI:
         return flc.layers[0] if flc else None
 
     def get_table_ref(self, table_id: str, table_name: str = None) -> Table:
+        """
+        Returns the reference to a subtable in layer in AGOL given the layer ID.
+        If the name is provided, return the subtable with the given name, else
+        returns the first subtable in the layer.
+
+        Args:
+            table_id: ID of the layer in AGOL.
+            table_name: Name of the subtable to retrieve, defaults to the first subtable.
+
+        Returns:
+            The reference to the table.
+        """
+
         ref = self.gis.content.get(table_id)
         if table_name:
             return [t for t in ref.tables if t.properties.name == table_name][0]
         return ref.tables[0] if ref else None
 
     def get_by_id(self, layerIdOrRef: str | FeatureLayer, id: int) -> Feature:
+        """
+        Retrieves a feature from AGOL in a layer by filters by its ID.
+
+        Args:
+            layerIdOrRef: The ID or reference to the layer/table to retrieve the feature.
+            id: The ID of the object to retrieve.
+
+        Returns:
+            The retrieve feature.
+        """
         return self.query(layerIdOrRef, f"OBJECTID = {id}").features[0]
 
     def query(
@@ -63,7 +106,22 @@ class AgolAPI:
         where: str,
         count: int = 1,
         order_by_fields="OBJECTID ASC",
-    ):
+    ) -> dict:
+        """
+        Runs a query over a layer/table and return the result.
+
+        Args:
+            layerIdOrRef: The ID or reference to the layer/table to run the query over it.
+            where: The filters to apply to the query.
+            count: The number of features to fetch.
+                Optional, defaults to 1.
+            order_by_fields: The order by instruction to be applied.
+                Optional, defaults to "OBJECTID ASC".
+
+        Returns:
+            The query result.
+        """
+
         LOGGER.info(f'Querying layer "{layerIdOrRef}" with condition "{where}" ... ')
         try:
             ref = (
@@ -83,7 +141,20 @@ class AgolAPI:
             LOGGER.error(f"{Fore.RED}✕ Query error: {e}{Style.RESET_ALL}")
             raise RuntimeError("Error querying layer") from e
 
-    def update(self, layerIdOrRef: str | FeatureLayer, feature):
+    def update(self, layerIdOrRef: str | FeatureLayer, feature: Feature) -> dict:
+        """
+        Updates a single feature on a layer/table.
+        If layerId is used, only layers can be updated. To update a feature in a table,
+        the reference has to be passed as a argument.
+
+        Args:
+            layerIdOrRef: The ID of the layer or the ref to the FeatureLayer or Table.
+            feature: Feature to be updated.
+
+        Returns:
+            The update result.
+        """
+
         LOGGER.info(
             f'Updating feature {feature.attributes["OBJECTID"]} on layer "{layerIdOrRef}" ... '
         )
@@ -104,8 +175,33 @@ class AgolAPI:
             LOGGER.error(f"{Fore.RED}✕ Update error: {e}{Style.RESET_ALL}")
             raise RuntimeError("Error updating feature") from e
 
-    def add_feature_collection(self, layerId: str, edits_payload: dict):
+    def add_features_to_collection(self, layerId: str, *args) -> dict:
+        """
+        Adds multiple lists of features into a feature layer collection.
+        This method allows adding to different layers at the same time, within a transaction.
+
+        Args:
+            layerId: The ID of the feature layer collection.
+            *args: Requires a even number of arguments. Each pair
+                is the numeric id of the sublayer and the list of features to add
+                to it.
+
+        Returns:
+            The transaction result.
+        """
+
         LOGGER.info(f"Adding features to collection {layerId} ... ")
+
+        if len(args) < 2 and len(args) % 2 != 0:
+            raise RuntimeError(
+                "Incorrect number of arguments to add feature to collection."
+            )
+
+        edits_payload: list[dict] = list()
+        args_iterator = iter(args)
+        for i1, i2 in zip(args_iterator, args_iterator):
+            edits_payload.append({"id": i1, "adds": i2})
+
         item = self.gis.content.get(layerId)
         flc = FeatureLayerCollection.fromitem(item)
         feature_service_url = flc.url
@@ -130,6 +226,7 @@ class AgolAPI:
             raise Exception(f"Add error: {results_with_error[0]}")
         else:
             LOGGER.info(f"{Fore.GREEN}✓ Add succeed{Style.RESET_ALL}")
+        return response
 
     def batch_edit(
         self,
@@ -138,6 +235,22 @@ class AgolAPI:
         features_to_edit: list[Feature] = [],
         batch_size: int = 1000,
     ):
+        """
+        Add/edit a list of features into a single feature layer, in batches.
+
+        Args:
+            layerIdOfRef: ID or reference to the layer.
+            features_to_add: List of features to add to the layer.
+                Optional. Default to an empty list.
+            features_to_edit: List of features to edit in the layer.
+                Optional. Default to an empty list.
+            batch_size: Number of features being edited/added at the same time.
+                This number is independent for each operation, for example, a value of 10
+                mean that up to 10 features can be edited and up to another 10 can be added at
+                the same time, to a maximum of 20.
+                Optional. Default to 1000.
+        """
+
         LOGGER.info(
             f"Updating features on layer {layerIdOrRef}. Size {len(features_to_add) + len(features_to_edit)}"
         )
@@ -153,29 +266,27 @@ class AgolAPI:
                 to_edit = (
                     features_to_edit[i : i + batch_size] if i <= max_edit_length else []
                 )
-                self.edit_list(layerIdOrRef, to_add, to_edit)
+                self._edit_list(layerIdOrRef, to_add, to_edit)
         except Exception as e:
-            raise RuntimeError("Error adding batch of features") from e
+            raise RuntimeError("Error adding/editing batch of features") from e
 
-    def batch_add(
+    def _edit_list(
         self,
         layerIdOrRef: str | FeatureLayer,
-        features: list[Feature],
-        batch_size: int = 1000,
+        features_to_add: list[Feature] = [],
+        features_to_edit: list[Feature] = [],
     ):
-        LOGGER.info(f"Updating features on layer {layerIdOrRef}. Size {len(features)}")
-        try:
-            for i in range(0, len(features), batch_size):
-                self.add_list(layerIdOrRef, features[i : i + batch_size])
-        except Exception as e:
-            raise RuntimeError("Error adding batch of features") from e
+        """
+        Add/edit a list of features into a single feature layer in a single operation.
 
-    def edit_list(
-        self,
-        layerIdOrRef: str | FeatureLayer,
-        to_add: list[Feature],
-        to_edit: list[Feature],
-    ):
+        Args:
+            layerIdOrRef: ID or reference to the layer.
+            features_to_add: List of features to add to the layer.
+                Optional. Default to an empty list.
+            features_to_edit: List of features to edit in the layer.
+                Optional. Default to an empty list.
+        """
+
         try:
             ref = (
                 layerIdOrRef
@@ -183,7 +294,8 @@ class AgolAPI:
                 else self.get_layer_ref(layerIdOrRef)
             )
             response = ref.edit_features(
-                adds=cast(list[dict], to_add), updates=cast(list[dict], to_edit)
+                adds=cast(list[dict], features_to_add),
+                updates=cast(list[dict], features_to_edit),
             )
             if isinstance(response, dict) and "addResults" in response:
                 for result in response["updateResults"]:
@@ -201,13 +313,26 @@ class AgolAPI:
                         raise Exception(f'Add error: {result["error"]["description"]}')
 
             LOGGER.info(
-                f"{Fore.GREEN}{len(to_add)} records added. {len(to_edit)} records updated.{Style.RESET_ALL}"
+                f"{Fore.GREEN}{len(features_to_add)} records added. {len(features_to_edit)} records updated.{Style.RESET_ALL}"
             )
+            return response
         except Exception as e:
             LOGGER.error(f"{Fore.RED}Error adding features: {e}{Style.RESET_ALL}")
             raise RuntimeError("Error adding features") from e
 
-    def add_list(self, layerIdOrRef: str | FeatureLayer, features: list[Feature]):
+    def add_list(
+        self, layerIdOrRef: str | FeatureLayer, features: list[Feature]
+    ) -> list[dict]:
+        """
+        Add a list of features into a feature layer.
+
+        Args:
+            layerIdOrRef: ID or reference to the layer.
+            features: List of features to add to the layer.
+
+        Returns:
+            The results of the add operations.
+        """
         LOGGER.info(f"Updating features on layer {layerIdOrRef}. Size {len(features)}")
         try:
             ref = (
@@ -233,35 +358,14 @@ class AgolAPI:
             LOGGER.error(f"{Fore.RED}Error adding features: {e}{Style.RESET_ALL}")
             raise RuntimeError("Error adding features") from e
 
-    def get_config(self, config_name: str) -> str:
-        if self.config_cache is None:
-            config_ref = self.get_table_ref(settings.agol_config_table_id)
-            self.config_cache = config_ref.query()
+    def get_latest_survey_year(self) -> int:
+        """
+        Get the year of the lastest survey stored in Agol API.
 
-        config = next(
-            (
-                c
-                for c in self.config_cache.features
-                if c.attributes["NAME"] == config_name
-            ),
-            None,
-        )
-        if config is None:
-            raise RuntimeError(f"Config not found with name {config_name}")
-        return config.attributes["CONFIG"]
+        Returns:
+            The year of the lastest survey.
+        """
 
-    def get_configs(self, prefix: str = ""):
-        if self.config_cache is None:
-            config_ref = self.get_table_ref(settings.agol_config_table_id)
-            self.config_cache = config_ref.query()
-
-        return {
-            c.attributes["NAME"]: c.attributes["CONFIG"]
-            for c in self.config_cache.features
-            if c.attributes["NAME"].startswith(prefix)
-        }
-
-    def get_latest_survey_year(self):
         if self._latest_survey_year is None:
             table_ref = self.get_table_ref(settings.agol_base_layer_view_id)
             result = table_ref.query(
@@ -278,6 +382,16 @@ class AgolAPI:
 
 
 class _AgolAPI_Injector:
+    """
+    Class to inject the AgolAPI instance into received http requests.
+    Also used to get the AgolAPI singleton instance.
+
+    Example:
+
+        from src.apis.agol_api import AgolAPI, AgolAPI_Injector
+        api: AgolAPI = AgolAPI_Injector()
+    """
+
     api: AgolAPI | None = None
     _lock = threading.Lock()
 
@@ -285,7 +399,7 @@ class _AgolAPI_Injector:
         if self.api is None:
             with self._lock:
                 if self.api is None:
-                    self.api = AgolAPI()
+                    self.api = AgolAPI(_SECRET_TOKEN)
         return self.api
 
 

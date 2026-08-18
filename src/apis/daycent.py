@@ -29,12 +29,14 @@ class DaycentExecutor:
     invoke the creation of the parameter files, execute the Daycent analysis,
     and upload the results into the ArcGIS online layer with study results data.
 
-    Usage:
+    Examples:
+
         executor = DaycentExecutor()
         await executor.execute(parcel_id, study_id)
     """
 
     agol_api: AgolAPI
+    ssurgo_api: Ssurgo_API
     parcel: Feature
     params: dict
 
@@ -45,6 +47,17 @@ class DaycentExecutor:
     async def execute(
         self, parcel_id: int, study_id: int, study_params: dict | None = None
     ):
+        """
+        Executes DayCent model for a given parcel and study.
+
+        Args:
+            parcel_id: ID of the parcel in the base layer. The OBJECTID column.
+            study_id: ID of the study being processed. The OBJECTID column.
+            study_params: The parameters of the study being processed.
+                Optional. By default this function will load the parameters from
+                the database.
+        """
+
         LOGGER.info(
             f"Starting Daycent executions for study {study_id} and parcel {parcel_id}."
         )
@@ -64,7 +77,7 @@ class DaycentExecutor:
         )
         self.parcel = query_res.features[0]
 
-        site_elevation, wth_file_path = await BuildWeatherFile().build_daymet(
+        site_elevation, wth_file_path = await BuildWeatherFile().build(
             self.parcel
         )
 
@@ -119,6 +132,17 @@ class DaycentExecutor:
         mapunit_key: int,
         site_elevation: int | None,
     ):
+        """
+        Prepare the input files from the model execution.
+
+        Args:
+            tmpdir: The temporary folder being used for this execution.
+            params: The study parameters.
+            wth_file_path: The path for the file created with weather data.
+            mapunit_key: The ID of the SSURGO map unit being processed.
+            site_elevation: The elevation in the middle point of the parcel.
+        """
+
         # Copy files that do not vary between executions.
         # TODO: Check if linking works instead of copy for daycent input files, except fix.100. kanpilotID(aop861yphyqkvfn2x9xpdkf5)
         self.copy_base_files(tmpdir)
@@ -158,11 +182,23 @@ class DaycentExecutor:
             end_year=params["study_end_year"],
         ).build()
 
-    def get_parcel_mapunits(self):
+    def get_parcel_mapunits(self) -> dict:
+        """
+        Gets the parcel SSURGO map units as a dict.
+
+        Returns:
+            The dictionary object with the map units data.
+        """
+
         map_unit_data = self.parcel.attributes["map_unit_data"]
         return json.loads(map_unit_data)
 
     def copy_base_files(self, tmpdir: str):
+        """
+        Copy to the temporary work folder the files from DayCents
+        base directory.
+        """
+
         for file_name in os.listdir(settings.daycent_basedir):
             source_file = os.path.join(settings.daycent_basedir, file_name)
             target_file = os.path.join(tmpdir, file_name)
@@ -171,6 +207,13 @@ class DaycentExecutor:
                 shutil.copy(source_file, target_file)
 
     def execute_daycent(self, tmpdir: str):
+        """
+        Executes the DayCent model in the working folder.
+
+        Args:
+            tmpdir: The temporary working folder.
+        """
+
         daycent_path = os.path.join(tmpdir, "DDcentEVI_rev491")
         # return_code = exec(daycent_path, ["-s", "site", "-N", "site"], self.workingDir, logger=LOGGER)
         return_code = exec(
@@ -183,6 +226,13 @@ class DaycentExecutor:
         print(return_code)
 
     def execute_ddlist(self, tmpdir: str):
+        """
+        Executes the output coversion binary (DDlist100) in the working folder.
+
+        Args:
+            tmpdir: The temporary working folder.
+        """
+        
         ddlist_path = os.path.join(tmpdir, "DDlist100_rev491")
         exec(
             ddlist_path,
@@ -193,6 +243,15 @@ class DaycentExecutor:
         )
 
     def upload_results(self, study_id: int, results: dict):
+        """
+        Upload the results of the model execution to
+        the results layer in ArcGIS Online.
+
+        Args:
+            study_id: ID of the study. OBJECTID column.
+            results: The results read from the model output.
+        """
+
         features = []
         for year in results["totalc"]:
             value = results["totalc"][year]
@@ -210,7 +269,22 @@ class DaycentExecutor:
 
         self.agol_api.add_list(settings.agol_studies_layer_id, features)
 
-    def read_results(self, tmpdir: str, vars: list[str]):
+    def read_results(self, tmpdir: str, vars: list[str]) -> dict[dict[float]]:
+        """
+        Call the execution of the model's output file generation and 
+        read the results into a dictionary.
+
+        Args:
+            tmpdir: The temporary working folder.
+            vars: The list of variables that are going to be generated.
+
+        Returns:
+            The variables read from model's output in a nested dictionary. The
+            first keys are the name of the variable, and the second keys are the
+            year of the value. The values are the variables values for the given year
+            as a float.
+        """
+
         self.write_outvars(tmpdir, vars)
         self.execute_ddlist(tmpdir)
 
@@ -237,10 +311,30 @@ class DaycentExecutor:
             return output
 
     def write_outvars(self, tmpdir: str, vars: list[str]):
+        """
+        Write the configuration file (outvars.txt) in the temporary working folder.
+        The file contents are each desired output variable, one line per each.
+
+        Args:
+            tmpdir: The temporary working folder.
+            vars: The list of desired output variables.
+        """
+
         with open(os.path.join(tmpdir, "outvars.txt"), "w") as outvars_file:
             outvars_file.writelines([f"{v}\n" for v in vars])
 
     def aggregate_results(self, results_per_mapunit: dict):
+        """
+        Aggregate the results from the multiple executions of the model
+        averaged by the area of each map unit compared to the total area of the parcel.
+
+        Args:
+            results_per_mapunit: The dictionary with all the output values for each map unit.
+            
+        Returns:
+            The averaged result.
+        """
+
         results = defaultdict(lambda: defaultdict(float))
         parcel_mapunits = self.get_parcel_mapunits()
 

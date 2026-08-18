@@ -26,6 +26,18 @@ class BuildSiteFile:
         elevation: int,
         components: DataFrame,
     ):
+        """
+        Constructs the builder.
+
+        Args:
+            dest_dir: The directory to write the site file.
+            parcel: The Feature of the parcel being processed.
+            nlayers: The number of layers in the parcel.
+            elevation: The parcel mean elevation.
+            components: The components present in the parcel's soils
+                according to SSURGO.
+        """
+        
         self.agol_api = AgolAPI_Injector()
         self.dest_dir = dest_dir
         self.nlayers = nlayers
@@ -34,20 +46,24 @@ class BuildSiteFile:
         self.components = components
 
     async def build(self):
+        """
+        Build the site.100 file.
+        """
+
         file_lines = ["X     Archived"]
-        file_lines += self.get_climate_lines()
-        file_lines += self.get_site_control_lines()
-        file_lines += self.get_external_nutrients_lines()
-        file_lines += self.get_organic_matter_initial_lines()
-        file_lines += self.get_forest_organic_matter_initial_lines()
-        file_lines += self.get_mineral_initial_values()
-        file_lines += self.get_water_initial_values()
+        file_lines += self._get_climate_lines()
+        file_lines += self._get_site_control_lines()
+        file_lines += self._get_external_nutrients_lines()
+        file_lines += self._get_organic_matter_initial_lines()
+        file_lines += self._get_forest_organic_matter_initial_lines()
+        file_lines += self._get_mineral_initial_values()
+        file_lines += self._get_water_initial_values()
 
         file_path = os.path.join(self.dest_dir, "site.100")
         with open(file_path, "w") as file:
             file.writelines([f"{l}\n" for l in file_lines])
 
-    def get_climate_lines(self):
+    def _get_climate_lines(self):
         """
         Return the lines for the climate parameters.
         TODO CHECK:: A single line with climate statistics is enough for Daycent to compute this section automatically.
@@ -55,7 +71,14 @@ class BuildSiteFile:
 
         return ["*** Climate statistics site.wth"]
 
-    def get_site_control_lines(self):
+    def _get_site_control_lines(self) -> list[str]:
+        """
+        Builds the list of lines for the section "Site and control parameters".
+        
+        Returns:
+            A list of strings with the content of the section.
+        """
+
         lines = []
         lines.append("*** Site and control parameters")
 
@@ -152,7 +175,14 @@ class BuildSiteFile:
 
         return lines
 
-    def get_external_nutrients_lines(self):
+    def _get_external_nutrients_lines(self):
+        """
+        Builds the list of lines for the section "External nutrient input parameters".
+        
+        Returns:
+            A list of strings with the content of the section.
+        """
+        
         lines = []
         lines.append("*** External nutrient input parameters")
 
@@ -193,8 +223,10 @@ class BuildSiteFile:
 
         return lines
 
-    def get_organic_matter_initial_lines(self):
+    def _get_organic_matter_initial_lines(self):
         """
+        Builds the list of lines for the section "Organic matter initial values".
+
         The values in this section are disconsidered when running a simulation
         that extends a spinup simulation. Since we are setting up equilibrium and
         base simulations before the future simulation, we can just set all values to
@@ -258,8 +290,10 @@ class BuildSiteFile:
         lines += [f"{0.1:<18.1f} {v}" for v in variables]
         return lines
 
-    def get_forest_organic_matter_initial_lines(self):
+    def _get_forest_organic_matter_initial_lines(self):
         """
+        Builds the list of lines for the section "Forest organic matter initial parameters".
+
         The values in this section are disconsidered when running a simulation
         that extends a spinup simulation. Since we are setting up equilibrium and
         base simulations before the future simulation, we can just set all values to
@@ -304,8 +338,10 @@ class BuildSiteFile:
         lines += [f"{0.1:<18.1f} {v}" for v in variables]
         return lines
 
-    def get_mineral_initial_values(self):
+    def _get_mineral_initial_values(self):
         """
+        Builds the list of lines for the section "Mineral initial parameters".
+
         The values in this section are disconsidered when running a simulation
         that extends a spinup simulation. Since we are setting up equilibrium and
         base simulations before the future simulation, we can just set all values to
@@ -356,8 +392,10 @@ class BuildSiteFile:
         lines += [f"{0.1:<18.1f} {v}" for v in variables]
         return lines
 
-    def get_water_initial_values(self):
+    def _get_water_initial_values(self):
         """
+        Builds the list of lines for the section "Water initial parameters".
+
         The values in this section are disconsidered when running a simulation
         that extends a spinup simulation. Since we are setting up equilibrium and
         base simulations before the future simulation, we can just set all values to

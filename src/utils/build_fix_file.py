@@ -11,12 +11,25 @@ class BuildFixFile:
     soil_layer_data: list[list[float]]
 
     def __init__(self, dest_dir: str, soil_layer_data: list[list[float]]):
+        """
+        Constructs the builder instance.
+
+        Args:
+            dest_dir: The folder to write the file.
+            soil_layer_data: The data used to write the file "soils.in".
+        """
         self.dest_dir = dest_dir
         self.soil_layer_data = soil_layer_data
 
     async def build(self):
-        depth_list = self.build_depth_list()
-        lines = self.read_current_file()
+        """
+        Builds the file fix.100 in the destination folder. For this builder,
+        the file fix.100 already exists and it is modified as necessary
+        according to the available variables.
+        """
+
+        depth_list = self._build_depth_list()
+        lines = self._read_current_file()
 
         for depthIdx in range(0, len(depth_list)):
             for line in lines:
@@ -30,10 +43,13 @@ class BuildFixFile:
         with open(os.path.join(self.dest_dir, "fix.100"), "w") as file:
             file.writelines(lines)
 
-    def build_depth_list(self) -> list[float]:
+    def _build_depth_list(self) -> list[float]:
         """
-        Build the depth list as a grouping of at list thickness 15 using
+        Build the depth list as a grouping of at least thickness 15 using
         the data from soils layer.
+
+        Returns:
+            A list of floats with the depth of each layer, in order.
         """
 
         next_thickness = 0
@@ -67,7 +83,17 @@ class BuildFixFile:
 
         return depth_list
 
-    def read_current_file(self):
+    def _read_current_file(self) -> list[list[str]]:
+        """
+        Reads the content of the current file into a list, removing
+        any commented out line and building tuples out of the available
+        content.
+
+        Returns:
+            The content of the current file as a list. Each list
+            element is a tuple with the variable value and name, respectively.
+        """
+
         lines = []
         with open(os.path.join(self.dest_dir, "fix.100"), "r") as file:
             for l in file:

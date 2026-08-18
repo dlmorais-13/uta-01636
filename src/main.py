@@ -3,9 +3,8 @@ if __name__ == "__main__":
 
     if settings.job_manager_id is not None:
         from src.jobs.job_manager import JobManager
-        from src.apis.agol_api import AgolAPI_Injector
 
-        jobManager = JobManager(AgolAPI_Injector())
+        jobManager = JobManager()
         jobManager.run()
     else:
         from src.webapp import app

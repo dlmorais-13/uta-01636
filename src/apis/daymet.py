@@ -2,7 +2,7 @@ import logging
 import os
 import hashlib
 import requests
-from typing import Literal, get_args
+from typing import Literal
 
 from src.settings import settings
 
@@ -36,6 +36,23 @@ class DaymetDownloader:
         lon: float,
         vars: list[DAYMET_VARIABLES] = ["tmax", "tmin", "prcp"],
     ):
+        """
+        Get the weather data from DayMet for a given point (lat, lon). Along
+        with the elevation of the point. By default, the variables tmax, tmin, and prcp are read.
+
+        Args:
+            lat: The point latitude.
+            lon: The point longitude.
+            vars: The list of variables begin read.
+                Optional. Default to tmax, tmin, and prcp.
+
+        Returns:
+            A tuple with the elevation and the weather data. The weather data
+            is a dictionary with keys being the year and day of year (1 to 365),
+            and the values are another dictionary, containing the keys "year", "day",
+            and more one key for each of the requested variables. The variable values
+            are floats and the other values are integers.
+        """
 
         filename_str = f"lat_{lat}_lon_{lon}_vars_{'|'.join(sorted(vars))}"
         filename = f"{hashlib.md5(filename_str.encode()).hexdigest()}.csv"
@@ -83,6 +100,16 @@ class DaymetDownloader:
     async def _download_data(
         self, lat: float, lon: float, vars: list[DAYMET_VARIABLES], file_path: str
     ):
+        """
+        Download the DayMet data for a point and list of variables.
+
+        Args:
+            lat: The point latitude.
+            lon: The point longitude.
+            vars: The list of variables being read.
+            file_path: The complete file path to save the file, including the name.
+        """
+
         query_params = ["format=csv", "start=1980-01-01", "end=2025-12-31"]
         query_params += [f"lat={lat}", f"lon={lon}", f"vars={','.join(vars)}"]
         url = f"{settings.daymet_base_url}/api/data?{'&'.join(query_params)}"
@@ -90,7 +117,8 @@ class DaymetDownloader:
         try:
             # Make a GET request to the URL, set stream=True for large files
             response = requests.get(url, stream=True)
-            response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+            # Raise an exception for bad status codes (4xx or 5xx)
+            response.raise_for_status()
             LOGGER.info(f"Downloading file {url} ")
 
             # Open the file in binary write mode ('wb') and write the content in chunks

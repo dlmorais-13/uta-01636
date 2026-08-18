@@ -29,16 +29,32 @@ class BuildClimateChangeFiles:
     wth_file: str
 
     def __init__(self, dest_dir: str, start_year: int, end_year: int, wth_file: str):
+        """
+        Constructs the builder instance.
+
+        Args:
+            dest_dir: The folder to write the files.
+            start_year: The year to start writing the files.
+            end_year: The year to end writing the files.
+            wth_file: The name of the weather file in the destination folder.
+        """
+
         self.dest_dir = dest_dir
+        # TODO This fixed date should be variable.
         self.start_year = max(start_year, 2026)
         self.end_year = end_year
         self.wth_file = wth_file
 
     async def build(self):
-        wth_data = self.read_wth_file()
-        totalized_values_per_month = self.calculate_totalized_values_per_month(wth_data)
-        self.calculate_theilslopes(totalized_values_per_month)
-        self.calculate_perc_ppt(totalized_values_per_month)
+        """
+        Build the files according to the input from the weather file
+        already present in the destination folder.
+        """
+
+        wth_data = self._read_wth_file()
+        totalized_values_per_month = self._calculate_totalized_values_per_month(wth_data)
+        self._calculate_theilslopes(totalized_values_per_month)
+        self._calculate_perc_ppt(totalized_values_per_month)
 
         self._write_file(
             "tmaxscale.dat",
@@ -65,7 +81,15 @@ class BuildClimateChangeFiles:
             ],
         )
 
-    def read_wth_file(self):
+    def _read_wth_file(self) -> list[list[float | int]]:
+        """
+        Reads the contents of the weather file and returns as a list of lists.
+
+        Returns:
+            The list with the weather data. Each element of the list is the
+            content of each line of the weather file.
+        """
+
         wth_data: list[list[float | int]] = []
         with open(self.wth_file, "r") as file:
             for line in file:
@@ -76,9 +100,22 @@ class BuildClimateChangeFiles:
                 wth_data.append(values)
         return wth_data
 
-    def calculate_totalized_values_per_month(
+    def _calculate_totalized_values_per_month(
         self, wth_data: list[list[float | int]]
     ) -> TotalizedData:
+        """
+        Calculate the totalized data for each month and for each of
+        the variables "tmax", "tmin", and "ppt". For the temperatures, 
+        the totalized data is the average for each period, and the
+        precipitation is the sum.
+
+        Args:
+            wth_data: The weather data read from the weather file.
+
+        Returns:
+            The totalized data.
+        """
+        
         totalized_per_month_data = defaultdict(
             lambda: defaultdict(lambda: defaultdict(int))
         )
@@ -124,7 +161,16 @@ class BuildClimateChangeFiles:
 
         return totalized_per_month_data
 
-    def calculate_theilslopes(self, wth_data: TotalizedData):
+    def _calculate_theilslopes(self, wth_data: TotalizedData):
+        """
+        Calculate the Theil-Sen Slope for each of the totalized data.
+        The result is stored in the totalized data using the prefix
+        "theilslope_" for each pair variable and month.
+
+        Args:
+            wth_data: The data totalized by month.
+        """
+
         for month in wth_data:
             for var in ["tmax", "tmin", "ppt"]:
                 wth_data[month][f"theilslope_{var}"] = theilslopes(
@@ -136,7 +182,16 @@ class BuildClimateChangeFiles:
                     x=[year for year in wth_data[month] if isinstance(year, int)],
                 )
 
-    def calculate_perc_ppt(self, wth_data: TotalizedData):
+    def _calculate_perc_ppt(self, wth_data: TotalizedData):
+        """
+        Converts the slope calculation of precipitation (ppt) into
+        a percentage variation, which is expected by the DayCent input
+        file for precipitation.
+
+        Args:
+            wth_data: The totalized data with the slope computed.
+        """
+
         for month in wth_data:
             wth_data[month]["perc_ppt"] = float(
                 wth_data[month]["theilslope_ppt"].slope
@@ -149,6 +204,14 @@ class BuildClimateChangeFiles:
             )
 
     def _write_file(self, filename: str, values: list[float]):
+        """
+        Writes a DayCent input file for a variable.
+
+        Args:
+            filename: The name of the file to write.
+            values: The list of values to write in the file.
+        """
+
         lines = [
             [y, *[f"{v:.6f}" for v in values]]
             for y in range(self.start_year, self.end_year + 1)

@@ -51,9 +51,6 @@ const links = [{
     href: '/admin/simulations',
     text: 'Simulations'
 }, {
-    href: '/admin/data-import',
-    text: 'Data Import'
-}, {
     href: '/admin/configurations',
     text: 'Configurations'
 }, {

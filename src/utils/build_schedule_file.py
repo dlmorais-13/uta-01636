@@ -3,6 +3,10 @@ from typing import TextIO
 
 
 class BuildScheduleFile:
+    """
+    Class to build the schedule files for the equilibrium, base, and simulation
+    calculations.
+    """
 
     dest_dir: str
     start_year: int
@@ -10,17 +14,38 @@ class BuildScheduleFile:
     block_number: int = 1
 
     def __init__(self, dest_dir: str, start_year: int, end_year: int):
+        """
+        Constructs the builder.
+
+        Args:
+            dest_dir: The directory to write the schedule file.
+            start_year: The first year of this schedule.
+            end_year: The last year of this schedule.
+        """
+
         self.dest_dir = dest_dir
         self.start_year = start_year
         self.end_year = end_year
 
     async def build(self):
-        with open(os.path.join(self.dest_dir, "site.sch"), "w") as file:
-            self.write_header(file)
-            file.write("Year Month Option\n")
-            self.write_block(file)
+        """
+        Builds the schedule and write into the destination folder.
+        """
 
-    def write_header(self, file: TextIO):
+        with open(os.path.join(self.dest_dir, "site.sch"), "w") as file:
+            self._write_header(file)
+            file.write("Year Month Option\n")
+            self._write_block(file)
+
+    def _write_header(self, file: TextIO):
+        """
+        Writes the header of the schedule file. Each schedule contains
+        only one main header.
+
+        Args:
+            file: The file to write the header into.
+        """
+
         lines: list[tuple] = []
 
         lines.append([self.start_year, "Starting year"])
@@ -85,8 +110,17 @@ class BuildScheduleFile:
         )
         file.write("\n")
 
-    def write_block(self, file: TextIO):
-        self.write_block_header(file)
+    def _write_block(self, file: TextIO):
+        """
+        Writes a block into the schedule file. A schedule may have multiple blocks.
+        Usually, the equilibrium and simulation schedules will have one block, and 
+        the base layer schedule might have more.
+
+        Args:
+            file: The file to write the block into.
+        """
+
+        self._write_block_header(file)
 
         # TODO Implement this part. Right now is only setting the crop as Alfalfa
         lines: list[list[int | str]] = []
@@ -106,7 +140,14 @@ class BuildScheduleFile:
         )
         file.write("\n")
 
-    def write_block_header(self, file: TextIO):
+    def _write_block_header(self, file: TextIO):
+        """
+        Writes a block header into the file.
+
+        Args:
+            file: The file to write the header into.
+        """
+
         lines: list[tuple] = []
         lines.append([++self.block_number, "Block #"])
         lines.append([self.end_year, "Last year"])

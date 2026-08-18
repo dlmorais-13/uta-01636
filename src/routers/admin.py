@@ -1,15 +1,15 @@
+"""
+File to configure the administration routes.
+
+All routes are prefixed by "/api/admin" and they require
+a valid authorization header.
+"""
+
 from fastapi import APIRouter, Header, Depends
-from typing import Annotated, Optional
-from pydantic import BaseModel
+from typing import Annotated
 from src.settings import settings
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
-from src.utils.admin_data_points import (
-    get_data_point,
-    get_import_data,
-    AdminData,
-    ADMIN_DATA,
-)
-from src.jobs.job_manager import JobManager
+from src.models.config_repository import ConfigRepository, Config
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -17,113 +17,35 @@ LOGGER = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin")
 
 
-class Config(BaseModel):
-    name: str
-    config: str
-
-
 @router.get("/configurations")
 async def load_configurations(
     authorization: Annotated[str | None, Header()],
-    api: Annotated[AgolAPI, Depends(AgolAPI_Injector)],
 ) -> list[Config]:
-    configTable = api.get_table_ref(settings.agol_config_table_id)
-    allConfigs = configTable.query()
-    return [
-        {"name": c.attributes["NAME"], "config": c.attributes["CONFIG"]}
-        for c in allConfigs.features
-    ]
+    """
+    Gets the list of all configurations in the system.
+
+    Args:
+        authorization: The authorization header.
+
+    Returns:
+        The list of configurations.
+    """
+
+    return ConfigRepository().get_configs()
 
 
 @router.put("/configurations")
 async def save_configurations(
     authorization: Annotated[str | None, Header()],
-    api: Annotated[AgolAPI, Depends(AgolAPI_Injector)],
-    desiredConfigs: list[Config] = None,
+    configs: list[Config] = None,
 ):
-    configTable = api.get_table_ref(settings.agol_config_table_id)
+    """
+    Updates the configurations to a desired state, read from request body.
 
-    allConfigs = configTable.query()
+    Args:
+        authorization: The authorization header.
+        configs: The desired list of configurations.
+    """
 
-    deleteList = []
-    editList = []
-    addList = []
-    existingConfigs = []
-
-    for config in allConfigs.features:
-        configName = config.attributes["NAME"]
-        existingConfigs.append(configName)
-
-        # Returns the first dictionary with a name == configName
-        desiredValue = next(
-            (dc.config for dc in desiredConfigs if dc.name == configName), None
-        )
-
-        if desiredValue is None:
-            deleteList.append(config)
-        else:
-            config.attributes["CONFIG"] = desiredValue
-            editList.append(config)
-
-    newDesiredConfigs = [
-        dc for dc in desiredConfigs if dc.name not in existingConfigs
-    ]
-    for dc in newDesiredConfigs:
-        addList.append({
-            "attributes": {
-                "NAME": dc.name,
-                "CONFIG": dc.config
-            }
-        })
-
-    configTable.edit_features(adds=addList, updates=editList, deletes=deleteList)
-
+    ConfigRepository().update_configs(configs)
     return True
-
-
-@router.get("/data")
-async def load_import_data(
-    authorization: Annotated[str | None, Header()],
-    api: Annotated[AgolAPI, Depends(AgolAPI_Injector)],
-) -> list[AdminData]:
-    return_values = []
-    for data_point_id in ADMIN_DATA.keys():
-        return_values.append(get_data_point(api, data_point_id))
-    return return_values
-
-
-@router.get("/data/{data_id}")
-async def load_import_data_point(
-    authorization: Annotated[str | None, Header()],
-    api: Annotated[AgolAPI, Depends(AgolAPI_Injector)],
-    data_id: str,
-) -> AdminData:
-    return get_data_point(api, data_id)
-
-
-@router.get("/data/{data_id}/import/{import_id}")
-async def get_import_data_point(
-    authorization: Annotated[str | None, Header()],
-    api: Annotated[AgolAPI, Depends(AgolAPI_Injector)],
-    data_id: str,
-    import_id: str,
-):
-    return get_import_data(api, data_id, import_id)
-
-
-@router.post("/data/{data_id}/import/{import_id}/process")
-async def process_import_data_point(
-    authorization: Annotated[str | None, Header()],
-    api: Annotated[AgolAPI, Depends(AgolAPI_Injector)],
-    data_id: str,
-    import_id: str,
-):
-    jobManager = JobManager(api)
-
-    import_data = next(
-        (i for i in ADMIN_DATA[data_id].imports if i.id == import_id), None
-    )
-    if import_data is None:
-        raise Exception("Failed to find data import configuration.")
-
-    jobManager.add(import_data.job_name, import_data.job_params or {})

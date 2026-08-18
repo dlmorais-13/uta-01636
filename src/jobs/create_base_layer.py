@@ -10,28 +10,53 @@ import geopandas as gpd
 from arcgis.features import FeatureSet, FeatureLayer, Feature, Table
 from arcgis.geometry import Polygon, filters
 from shapely.ops import orient
+from pandas import Series
 
 from src.settings import settings
 from src.jobs.job import Job
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.utils.geopandas_utils import GeoPandasUtils
 from src.utils.water_related_land_use_utils import WaterRelatedLandUseUtils
+from src.utils.agol_geopandas_converter import AgolGeopandasConverter
+from src.models.config_repository import ConfigRepository
 
 LOGGER = logging.getLogger(__name__)
 GEOJSON_PATH = os.path.join(settings.workdir, "geojson")
 
 
 class CreateBaseLayer(Job):
+    """
+    Job to populate the base layer parcels and land use history using
+    data from SSURGO and Utah's Water-Related Land Use.
+    """
 
     api: AgolAPI
+    configRepository: ConfigRepository
 
     async def logic(self, params: dict):
-        self.api = AgolAPI_Injector()
+        """
+        Executes the job.
 
-        wrlu_specs = self.api.get_configs("WRLU_SPEC_")
+        Args:
+            params: Dictionary with the keys below.
+                - batch_size: Number of parcels uploaded concurrently.
+                - delete_data: Whether data should be deleted before start.
+                    Optional. Default to False.
+                - delete_county_json: Whether county GeoJson cache should
+                    be deleted before start. Optional. Default to False.
+                - delete_soils_json: Whether soils GeoJson cache should be
+                    deleted before start. Optiona. Default to False.
+                - parcel_id: Parcel ID to be processed. If defined, all other
+                    are going to be ignored. Useful for debugging purposes.
+                    Optional. Default to None.
+        """
+        self.api = AgolAPI_Injector()
+        self.configRepository = ConfigRepository()
+
+        wrlu_specs = self.configRepository.get_configs("WRLU_SPEC_")
         lower_case_counties = [
             county.lower()
-            for county in self.api.get_config("STUDY_AREA_COUNTIES").split(",")
+            for county in self.configRepository.get_config("STUDY_AREA_COUNTIES").split(",")
         ]
 
         base_layer_ref: FeatureLayer = self.api.get_layer_ref(
@@ -62,8 +87,9 @@ class CreateBaseLayer(Job):
         ]
         most_recent_year.sort(reverse=True)
         most_recent_year = most_recent_year[0]
-        LOGGER.info(f'Most recent survey year is {most_recent_year}')
+        LOGGER.info(f"Most recent survey year is {most_recent_year}")
 
+        # For each county, process the data and uplods to ArcGIS Online.
         for county in lower_case_counties:
             LOGGER.info(f"Processing county {county}")
 
@@ -77,19 +103,26 @@ class CreateBaseLayer(Job):
                 result_record_count=1,
                 out_fields=["parcel_key"],
             )
+
+            # If there are features added, delete the last one, to be sure it is
+            # going to be fully processed next.
             if len(last_feature.features):
                 last_feature_key = int(
                     last_feature.features[0].attributes["parcel_key"]
                 )
-                # Delete the last feature from layer and history to guarantee it is added fully.
+                # Delete the last feature from layer and history to guarantee it is fully added.
                 base_layer_ref.delete_features(where=f"parcel_key = {last_feature_key}")
                 base_table_ref.delete_features(where=f"parcel_key = {last_feature_key}")
             else:
                 last_feature_key = 0
+
             LOGGER.info(
                 f"Last feature key: {last_feature_key}. Ignoring all parcels with key < {last_feature_key}."
             )
 
+            # Iterate until the whole county data is processed, in batches.
+            # This is important to save on memory usage, but also because
+            # AGOL API does not respond well to large edit requests.
             counter = 0
             while True:
                 county_base_gdf: GeoDataFrame = gpd.read_file(
@@ -110,7 +143,7 @@ class CreateBaseLayer(Job):
                 else:
                     # Drop all the features with ID < last_feature_key
                     county_base_gdf = county_base_gdf[
-                        county_base_gdf["OBJECTID"] > last_feature_key
+                        county_base_gdf["OBJECTID"] >= last_feature_key
                     ]
 
                 counter += 1
@@ -128,21 +161,35 @@ class CreateBaseLayer(Job):
                         params["parcel_id"] if "parcel_id" in params else None,
                     )
 
-    def build_county_geojson(self, county: str, year: int, wrlu_specs):
-        if not self.county_geojson_exists(county):
-            [service_id, *columns] = wrlu_specs[f"WRLU_SPEC_{year}"].split(",")
+    def build_county_geojson(self, county: str, most_recent_year: int, wrlu_specs):
+        """
+        Build the GeoJson file for a county, if it doesn't yet exists.
 
+        Args:
+            county: The lowercase name of the county.
+            most_recent_year: The most recent year with surveys.
+            wrlu_specs: The list of configuration for importing WRLU data.
+        """
+
+        if not self.county_geojson_exists(county):
+            [wrlu_service_id, *columns] = wrlu_specs[
+                f"WRLU_SPEC_{most_recent_year}"
+            ].split(",")
+
+            # Downloads the GeoJson file from WRLU data.
             geojson = WaterRelatedLandUseUtils.download_service_geojson(
-                self.api, service_id, county
+                self.api, wrlu_service_id, county
             )
-            LOGGER.info(f"Downloaded GeoJSON for WRLU {year} - {county}.")
+            LOGGER.info(f"Downloaded GeoJSON for WRLU {most_recent_year} - {county}.")
 
             wrlu_columns = {k: v for col in columns for k, v in [col.split(":", 1)]}
             wrlu_columns["OBJECTID"] = "OBJECTID"
 
             LOGGER.info(f"Reading columns {list(wrlu_columns.keys())} of GeoJSON.")
             county_base_gdf = gpd.read_file(geojson, columns=list(wrlu_columns.keys()))
-            LOGGER.info(f"WRLU {year} - {county} size: {len(county_base_gdf)}")
+            LOGGER.info(
+                f"WRLU {most_recent_year} - {county} size: {len(county_base_gdf)}"
+            )
             gc.collect()
 
             # Project to 3857
@@ -155,7 +202,9 @@ class CreateBaseLayer(Job):
                 )
                 county_base_gdf["geometry"] = county_base_gdf.geometry.buffer(0)
 
-            # Intersect with soils layer
+            # Intersect with soils layer from SSURGO, and build the column with
+            # the map unit data as a JSON object with the map unit key and area
+            # intersected with each parcel.
             soils_gdf = self.get_soils_gdf(county)
             intersection_gdf = gpd.overlay(
                 soils_gdf, county_base_gdf, how="intersection"
@@ -168,6 +217,10 @@ class CreateBaseLayer(Job):
                 else {}
             )
 
+            # The previous operation creates multiple rows for each parcel, if they
+            # intersect more than one map unit. The next operations group the rows
+            # using the column OBJECTID and combine the map unit data into a single
+            # JSON object.
             intersection_grouped_gdf = (
                 intersection_gdf.groupby("OBJECTID")["map_unit_data"]
                 .apply(lambda x: json.dumps(list(x)))
@@ -184,16 +237,33 @@ class CreateBaseLayer(Job):
 
     def calculate_county_parcels_history(
         self, county: str, county_base_gdf: GeoDataFrame, wrlu_specs
-    ):
+    ) -> list[Series]:
+        """
+        Builds a list of Pandas Series containing the full land use history
+        from WRLU of the parcels in the given GeoDataFrame.
+
+        Args:
+            county: The lowercase name of the county being processed.
+            county_base_gdf: The GeoDataFrame with the county's parcels.
+            wrlu_specs: The list of WRLU import configurations.
+
+        Returns:
+            The list with the parcel's histories of land use.
+        """
+
         history = []
+
+        # Hold the area of the parcels to use to filter them later.
         parcel_areas = county_base_gdf.set_index("OBJECTID").geometry.area
 
+        # For each year with survey, build the history for all parcels.
         for wrlu_year, wrlu_spec in wrlu_specs.items():
-            [service_id, *columns] = wrlu_spec.split(",")
+            [wrlu_service_id, *columns] = wrlu_spec.split(",")
             year = wrlu_year.split("_")[-1]
 
+            # Download the WRLU GeoJson for the county and year.
             geojson = WaterRelatedLandUseUtils.download_service_geojson(
-                self.api, service_id, county
+                self.api, wrlu_service_id, county
             )
             LOGGER.info(f"Retrieved GeoJSON for WRLU {year} - {county}.")
 
@@ -201,33 +271,33 @@ class CreateBaseLayer(Job):
             wrlu_columns["OBJECTID"] = "OBJECTID"
 
             LOGGER.info(f"Reading columns {list(wrlu_columns.keys())} of GeoJSON.")
-            next_gdf = gpd.read_file(geojson, columns=list(wrlu_columns.keys()))
-            next_gdf = next_gdf.to_crs(epsg=3857)
-            LOGGER.info(f"WRLU {year} - {county} size: {len(next_gdf)}")
+            year_gdf = gpd.read_file(geojson, columns=list(wrlu_columns.keys()))
+            year_gdf = year_gdf.to_crs(epsg=3857)
+            LOGGER.info(f"WRLU {year} - {county} size: {len(year_gdf)}")
             gc.collect()
 
             # Adds the year prefix to each column.
             rename_columns = {col: f"{year}_{col}" for col in list(wrlu_columns.keys())}
-            next_gdf = next_gdf.rename(columns=rename_columns)
+            year_gdf = year_gdf.rename(columns=rename_columns)
             gc.collect()
 
-            LOGGER.info(f"GDF is valid: {next_gdf.is_valid.all()}")
-            if not next_gdf.is_valid.all():
+            LOGGER.info(f"GDF is valid: {year_gdf.is_valid.all()}")
+            if not year_gdf.is_valid.all():
                 LOGGER.warning(
                     f"Fixing invalid geometries in next_gdf for year {year} using buffer(0)."
                 )
-                next_gdf["geometry"] = next_gdf.geometry.buffer(0)
+                year_gdf["geometry"] = year_gdf.geometry.buffer(0)
 
             LOGGER.info(f"Joining base layer with WRLU {year}")
             joined_gdf = gpd.sjoin(
-                county_base_gdf, next_gdf, how="left", predicate="intersects"
+                county_base_gdf, year_gdf, how="left", predicate="intersects"
             )
 
             LOGGER.info(f"Calculating the area of the intersections")
             joined_gdf["intersection_area"] = joined_gdf.apply(
                 lambda row: (
                     row["geometry"]
-                    .intersection(next_gdf.loc[int(row["index_right"]), "geometry"])
+                    .intersection(year_gdf.loc[int(row["index_right"]), "geometry"])
                     .area
                     if gpd.pd.notna(row["index_right"])
                     else 0
@@ -250,7 +320,8 @@ class CreateBaseLayer(Job):
                 ["OBJECTID", f"{year}_{land_use_code_column}"], as_index=False
             ).agg(agg_rules)
 
-            # Filter only features with area > 1% of the total area for the corresponding parcel
+            # Filter only features with area > 1% of the total area for the corresponding parcel.
+            # This is important to discard minor differences between the surveys.
             total_parcel_areas = joined_gdf["OBJECTID"].map(parcel_areas)
             joined_gdf = joined_gdf[
                 joined_gdf["intersection_area"] > total_parcel_areas * 0.01
@@ -266,6 +337,16 @@ class CreateBaseLayer(Job):
         return history
 
     def get_county_geojson_path(self, county: str) -> str:
+        """
+        Returns the path to the GeoJson file of a county.
+
+        Args:
+            county: The lowercase name of the county.
+
+        Returns:
+            The full path to the county's GeoJson file.
+        """
+
         return os.path.join(
             settings.workdir,
             "geojson",
@@ -273,24 +354,57 @@ class CreateBaseLayer(Job):
         )
 
     def county_geojson_exists(self, county: str):
+        """
+        Checks if the GeoJson for a county exists in the
+        working directory.
+
+        Args:
+            county: The lowercase name of the county.
+
+        Returns:
+            True if the file exists, False otherwise.
+        """
+
         path = Path(self.get_county_geojson_path(county))
         return path.exists()
 
     def save_county_gdf(self, county: str, gdf: GeoDataFrame):
+        """
+        Saves a GeoDataFrame as a GeoJson into the
+        county's GeoJson file.
+
+        Args:
+            county: The lowercase name of the county.
+            gdf: The GeoDataFrame to save.
+        """
         with open(self.get_county_geojson_path(county), "w") as file:
             file.write(gdf.to_json())
 
     def save_data(
         self,
-        layer: GeoDataFrame,
+        parcels: GeoDataFrame,
         history: list,
         wrlu_specs: dict,
         county: str,
         most_recent_year: int,
         parcel_id: int | None = None,
     ):
+        """
+        Save the computed data into ArcGIS Online.
+
+        Args:
+            parcels: The GeoDataFrame with the parcels to save.
+            history: The list with the land use history of the parcels.
+            wrlu_specs: The WRLU configurations.
+            county: The lowercase name of the county being processed.
+            most_recent_year: The year of the most recent survey.
+            parcel_id: Used for debugging purposes only. If defined
+                the data that would be saved will be printed instead.
+                Optional. Defauls to None.
+        """
+
         features_to_add = self.build_features_to_save(
-            layer, county, wrlu_specs, most_recent_year
+            parcels, county, wrlu_specs, most_recent_year
         )
         history_to_add = self.build_history_to_save(history, wrlu_specs)
 
@@ -304,23 +418,48 @@ class CreateBaseLayer(Job):
             print(history_to_add)
 
     def build_features_to_save(
-        self, layer: GeoDataFrame, county: str, wrlu_specs: dict, most_recent_year: int
-    ):
+        self,
+        parcels: GeoDataFrame,
+        county: str,
+        wrlu_specs: dict,
+        most_recent_year: int,
+    ) -> list[Feature]:
+        """
+        Transforms the given GeoDataFrame with the parcels data into a list of Features
+        to be saved in ArcGIS Online.
+
+        Args:
+            parcels: The GeoDataFrame with the parcels data.
+            county: The lowercase name of the county being processed.
+            wrlu_specs: The WRLU configurations.
+            most_recent_year: The year of the most recent survey.
+        """
+
         [_, *most_recent_columns] = wrlu_specs[f"WRLU_SPEC_{most_recent_year}"].split(
             ","
         )
-        basin_column_name = [
-            col_spec.split(":")[0]
-            for col_spec in most_recent_columns
-            if col_spec.split(":")[1] == "basin"
-        ][0]
 
-        layer_projected = layer.to_crs(epsg=4326)
+        basin_column_name = next(
+            (
+                col_spec.split(":")[0]
+                for col_spec in most_recent_columns
+                if col_spec.split(":")[1] == "basin"
+            ),
+            None,
+        )
+
+        # basin_subarea_column_name = next((
+        #     col_spec.split(":")[0]
+        #     for col_spec in most_recent_columns
+        #     if col_spec.split(":")[1] == "basin_subarea"
+        # ), None)
+
+        layer_projected = parcels.to_crs(epsg=4326)
 
         # Get the name of the county with capitalized letters.
         county_name = [
             c_name
-            for c_name in self.api.get_config("STUDY_AREA_COUNTIES").split(",")
+            for c_name in self.configRepository.get_config("STUDY_AREA_COUNTIES").split(",")
             if c_name.lower() == county
         ][0]
 
@@ -332,26 +471,18 @@ class CreateBaseLayer(Job):
                 "parcel_key": int(feature_attrs["OBJECTID"]),
                 "county": county_name,
                 "basin": feature_attrs[basin_column_name],
+                # TODO Reprocess with subarea being imported.
+                # "basin_subarea": feature_attrs[basin_subarea_column_name],
                 "map_unit_data": feature_attrs["map_unit_data"],
             }
-
-            arcgis_rings = []
-            polygons = (
-                row["geometry"].geoms
-                if row["geometry"].geom_type == "MultiPolygon"
-                else [row["geometry"]]
-            )
-            for poly in polygons:
-                oriented_poly = orient(poly, sign=-1)
-                arcgis_rings.append(list(oriented_poly.exterior.coords))
-                for interior in oriented_poly.interiors:
-                    arcgis_rings.append(list(interior.coords))
 
             geom = Polygon(
                 {
                     "hasZ": False,
                     "hasM": False,
-                    "rings": arcgis_rings,
+                    "rings": AgolGeopandasConverter.geodataframeGeometryToArcgisRings(
+                        row["geometry"]
+                    ),
                     "spatialReference": {"wkid": 4326},
                 }
             )
@@ -360,7 +491,21 @@ class CreateBaseLayer(Job):
 
         return features_to_add
 
-    def build_history_to_save(self, history: list, wrlu_specs: dict):
+    def build_history_to_save(
+        self, history: list[Series], wrlu_specs: dict
+    ) -> list[Feature]:
+        """
+        Convert the list of historical land use in Pandas Series format into
+        a list of Features to be saved in ArcGIS Online.
+
+        Args:
+            history: The list to be converted.
+            wrlu_specs: The WRLU configuration.
+
+        Returns:
+            The converted list.
+        """
+
         history_to_add = []
         for h in history:
             # Get the year of the history item for the column names.
@@ -381,6 +526,9 @@ class CreateBaseLayer(Job):
             crop = ""
             crop_group = ""
 
+            # For each column from WRLU configuration, read its value
+            # and define it in the appropriate variable, doing any
+            # transformations as necessary.
             for c in columns:
                 c_from, c_to = c.split(":")
 
@@ -442,6 +590,14 @@ class CreateBaseLayer(Job):
         return history_to_add
 
     def transform_irr_type(self, irr_type: str):
+        """
+        Transform the irrigation type from WRLU into the 
+        format normalized expected by the base layer.
+
+        Args:
+            irr_type: The WRLU irrigation type.
+        """
+
         match irr_type:
             case "D" | "Drip":
                 return "Drip"
@@ -456,7 +612,17 @@ class CreateBaseLayer(Job):
             case _:
                 return "Unknown"
 
-    def get_soils_gdf(self, county: str):
+    def get_soils_gdf(self, county: str) -> GeoDataFrame:
+        """
+        Gets the GeoDataFrame for the soils data of SSURGO for a 
+        specific county. If there exists a GeoJson cached, will be used,
+        otherwise it will be computed using ArcGIS public data and
+        cached for future use.
+
+        Args:
+            county: The lowercase name of the county.
+        """
+
         soils_geojson_path = os.path.join(
             settings.workdir, "geojson", f'soils_{county.replace(" ", "-")}.geojson'
         )
@@ -481,6 +647,8 @@ class CreateBaseLayer(Job):
                 geometry=county_bounding_box, sr={"wkid": 3857}
             )
 
+            # Query the layer in ArcGIS filtering with the
+            # bounding box of the county.
             fs: FeatureSet = soils_ref.query(
                 where="SHAPE IS NOT NULL",
                 return_all_records=True,

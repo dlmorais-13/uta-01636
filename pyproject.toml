@@ -22,6 +22,7 @@ scipy = "1.15.3"
 soildb = "0.6.0"
 camel-converter = "5.1.0"
 python-multipart = "^0.0.32"
+xarray = "2025.6.1"
 
 [tool.poetry.group.dev.dependencies]
 tabulate = "^0.10.0"

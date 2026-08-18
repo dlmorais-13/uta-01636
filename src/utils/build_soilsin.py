@@ -13,7 +13,8 @@ class BuildSoilsin:
 
     Will return the number of layers defined in soils.in file.
 
-    Usage:
+    Examples:
+
         build_soilsin = BuildSoilsin()
         await build_soilsin.build(tmpdir, mapunit_key))
     """
@@ -22,6 +23,13 @@ class BuildSoilsin:
     dir: str
 
     def __init__(self, tmpdir: str):
+        """
+        Constructs the builder.
+
+        Args:
+            tmpdir: The directory to put the soils.in file.
+        """
+
         self.dir = tmpdir
         self.ssurgo_api = Ssurgo_API()
 
@@ -31,10 +39,23 @@ class BuildSoilsin:
         components: DataFrame = None,
         chorizons: DataFrame = None,
     ):
-        components, chorizons = await self.load_components_and_chorizons(
+        """
+        Builds the soils.in file and return the data used to build it.
+
+        Args:
+            mapunit_key: The ID of the map unit to read the data from SSURGO.
+            components: The components of the map unit.
+                Optional. If not defined will be fetched from SSURGO.
+            chorizons: The horizon configuration of the map unit.
+                Optional. If not defined will be fetched from SSURGO.
+        """
+
+        components, chorizons = await self._load_components_and_chorizons(
             mapunit_key, components, chorizons
         )
-        soilsin_data = self.get_mapunit_soilsin_data(mapunit_key, components, chorizons)
+        soilsin_data = self._get_mapunit_soilsin_data(
+            mapunit_key, components, chorizons
+        )
 
         file_path = os.path.join(self.dir, "soils.in")
         with open(file_path, "w") as f:
@@ -51,7 +72,7 @@ class BuildSoilsin:
 
         return soilsin_data
 
-    async def load_components_and_chorizons(
+    async def _load_components_and_chorizons(
         self,
         mapunit_key: int,
         components: DataFrame = None,
@@ -60,6 +81,13 @@ class BuildSoilsin:
         """
         Load the data from SSURGO, if the arguments are None.
         If the data is already loaded, simply returns it.
+
+        Args:
+            mapunit_key: The ID of the map unit to read the data from SSURGO.
+            components: The components of the map unit.
+                Optional. If not defined will be fetched from SSURGO.
+            chorizons: The horizon configuration of the map unit.
+                Optional. If not defined will be fetched from SSURGO.
         """
 
         components = (
@@ -74,9 +102,23 @@ class BuildSoilsin:
         )
         return components, chorizons
 
-    def get_layer_data_from_horizon(
+    def _get_layer_data_from_horizon(
         self, upper_depth: int, lower_depth: int, horizon: dict
     ) -> list[float]:
+        """
+        Transforms the inputs into the format expected by
+        the soils.in file, as a list of floats.
+
+        Args:
+            upper_depth: The upper depth of the layer.
+            lower_depth: The lower depth of the layer.
+            horizon: The horizon layer data.
+
+        Returns:
+            The build list of floats with data ready to be
+            written into soils.in file.
+        """
+
         layer_data: list[float] = []
 
         # Thickness
@@ -135,7 +177,23 @@ class BuildSoilsin:
         layer_data[:] = [round(v, 3) for v in layer_data]
         return layer_data
 
-    def combine_horizons(self, horizons: DataFrame, components: DataFrame):
+    def _combine_horizons(self, horizons: DataFrame, components: DataFrame):
+        """
+        Combine multiple horizons into layers respecting the
+        boundaries indicated by DayCent and also the boundaries
+        of the data in SSURGO. When necessary, multiple layers
+        are combined using the weighted average according to
+        their thickness.
+
+        Args:
+            horizons: The horizon data read from SSURGO.
+            components: The components from SSURGO.
+
+        Returns:
+            The layers combined in the way that is expected
+            by DayCent in soils.in file.
+        """
+
         # Max depth in the horizon
         max_depth = int(horizons["hzdepb_r"].max())
 
@@ -229,21 +287,34 @@ class BuildSoilsin:
 
         return combined_layers
 
-    def get_mapunit_soilsin_data(
+    def _get_mapunit_soilsin_data(
         self, mukey: int, components: DataFrame, chorizon: DataFrame
     ):
+        """
+        Build the data necessary to create the soils.in file using the
+        components and layers from SSURGO as input.
+
+        Args:
+            mukey: The map unit ID.
+            components: The components information from SSURGO.
+            chorizon: The layers information from SSURGO.
+
+        Returns:
+            The soils.in data build the way expected by DayCent.
+        """
+
         mu_comps: DataFrame = components[components["mukey"] == mukey]
         mu_chorizon: DataFrame = chorizon[
             chorizon["cokey"].isin(mu_comps["cokey"].tolist())
         ]
         mu_chorizon = mu_chorizon.sort_values(by=["hzdept_r", "hzdepb_r"])
 
-        combined_layers = self.combine_horizons(mu_chorizon, mu_comps)
+        combined_layers = self._combine_horizons(mu_chorizon, mu_comps)
 
         soilsin_data: list[list[float]] = []
 
         for layer in combined_layers:
-            soilsin_item = self.get_layer_data_from_horizon(
+            soilsin_item = self._get_layer_data_from_horizon(
                 layer["depth_top"], layer["depth_bottom"], layer
             )
             soilsin_data.append(soilsin_item)
@@ -257,10 +328,10 @@ if __name__ == "__main__":
     build_soilsin = BuildSoilsin("/tmp")
     mukey = 482665
 
-    cmp, hor = asyncio.run(build_soilsin.load_components_and_chorizons(mukey))
+    cmp, hor = asyncio.run(build_soilsin._load_components_and_chorizons(mukey))
     hor = hor.sort_values(by=["hzdept_r", "hzdepb_r"])
-    data1 = build_soilsin.combine_horizons(hor, cmp)
-    data2 = build_soilsin.get_mapunit_soilsin_data(mukey, cmp, hor)
+    data1 = build_soilsin._combine_horizons(hor, cmp)
+    data2 = build_soilsin._get_mapunit_soilsin_data(mukey, cmp, hor)
     from tabulate import tabulate
 
     print(tabulate(data1, headers="keys", tablefmt="grid"))
