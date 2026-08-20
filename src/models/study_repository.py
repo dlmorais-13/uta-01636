@@ -88,15 +88,21 @@ class StudyRepository:
 
         Args:
             attributes: The attributes to add to the transformed feature.
-        
+
         Returns:
             The feature transformed from the parameters.
         """
+
+        filters=json.dumps(attributes["filters"] or [])
+        del attributes["filters"]
+        params=json.dumps(attributes["params"] or [])
+        del attributes["params"]
+
         return Feature(
             attributes=dict(
                 **attributes,
-                filters=json.dumps(attributes["filters"] or []),
-                params=json.dumps(attributes["params"] or [])
+                filters=filters,
+                params=params
             )
         )
 
@@ -127,14 +133,16 @@ class StudyRepository:
 
         return [self._feature_to_dict(f) for f in studies.features]
 
-    def create_study(self, filters: list[dict] = [], parameters: list[dict] = []) -> dict:
+    def create_study(
+        self, filters: list[dict] = [], parameters: list[dict] = []
+    ) -> dict:
         """
         Creates a new study.
 
         Args:
             filters: List of filters for the study.
             parameters: List of parameters for the study.
-        
+
         Returns:
             The created study.
         """
