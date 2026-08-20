@@ -23,16 +23,16 @@ LOGGER = logging.getLogger(__name__)
 
 class DaycentExecutor:
     """
-    Class to execute Daycent for a given parcel and study.
+    Class to execute Daycent for a given parcel and simulation.
 
     Will create a temporary execution folder, copy all necessary static files,
     invoke the creation of the parameter files, execute the Daycent analysis,
-    and upload the results into the ArcGIS online layer with study results data.
+    and upload the results into the ArcGIS online layer with simulation results data.
 
     Examples:
 
         executor = DaycentExecutor()
-        await executor.execute(parcel_id, study_id)
+        await executor.execute(parcel_id, simulation_id)
     """
 
     agol_api: AgolAPI
@@ -45,31 +45,31 @@ class DaycentExecutor:
         self.ssurgo_api = Ssurgo_API()
 
     async def execute(
-        self, parcel_id: int, study_id: int, study_params: dict | None = None
+        self, parcel_id: int, simulation_id: int, simulation_params: dict | None = None
     ):
         """
-        Executes DayCent model for a given parcel and study.
+        Executes DayCent model for a given parcel and simulation.
 
         Args:
             parcel_id: ID of the parcel in the base layer. The OBJECTID column.
-            study_id: ID of the study being processed. The OBJECTID column.
-            study_params: The parameters of the study being processed.
+            simulation_id: ID of the simulation being processed. The OBJECTID column.
+            simulation_params: The parameters of the simulation being processed.
                 Optional. By default this function will load the parameters from
                 the database.
         """
 
         LOGGER.info(
-            f"Starting Daycent executions for study {study_id} and parcel {parcel_id}."
+            f"Starting Daycent executions for simulation {simulation_id} and parcel {parcel_id}."
         )
 
-        if study_params is None:
-            study_table_ref = self.agol_api.get_table_ref(
-                settings.agol_studies_layer_id
+        if simulation_params is None:
+            simulation_table_ref = self.agol_api.get_table_ref(
+                settings.agol_simulations_layer_id
             )
-            study_query_res = study_table_ref.query(where=f"OBJECTID = {study_id}")
-            study_obj = study_query_res.features[0].attributes
-            study_params = json.loads(study_obj["params"])
-        self.params = study_params
+            simulation_query_res = simulation_table_ref.query(where=f"OBJECTID = {simulation_id}")
+            simulation_obj = simulation_query_res.features[0].attributes
+            simulation_params = json.loads(simulation_obj["params"])
+        self.params = simulation_params
 
         base_layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
         query_res = base_layer_ref.query(
@@ -90,14 +90,14 @@ class DaycentExecutor:
             mapunit_key = int(mapunit["id"])
             LOGGER.info(f"Starting execution for mapunit {mapunit_key}.")
 
-            tmpdir = tempfile.mkdtemp(suffix=f"_{study_id}_{parcel_id}")
+            tmpdir = tempfile.mkdtemp(suffix=f"_{simulation_id}_{parcel_id}")
 
             try:
                 LOGGER.info(f"Created temporary directory {tmpdir}")
 
                 await self.prepare_input_files(
                     tmpdir=tmpdir,
-                    params=study_params,
+                    params=simulation_params,
                     mapunit_key=mapunit_key,
                     site_elevation=site_elevation,
                     wth_file_path=wth_file_path,
@@ -109,10 +109,10 @@ class DaycentExecutor:
                 )
 
                 LOGGER.info(
-                    f"Finished Daycent execution for study {study_id} and parcel {parcel_id}."
+                    f"Finished Daycent execution for simulation {simulation_id} and parcel {parcel_id}."
                 )
             except Exception as e:
-                msg = f"Error in Daycent execution for study {study_id} and parcel {parcel_id}"
+                msg = f"Error in Daycent execution for simulation {simulation_id} and parcel {parcel_id}"
                 LOGGER.exception(msg)
                 raise Exception(msg) from e
             finally:
@@ -122,7 +122,7 @@ class DaycentExecutor:
                     LOGGER.info(f"Not removing direction: {tmpdir}")
 
         results = self.aggregate_results(results_per_unit)
-        self.upload_results(study_id=study_id, results=dict(results))
+        self.upload_results(simulation_id=simulation_id, results=dict(results))
 
     async def prepare_input_files(
         self,
@@ -137,7 +137,7 @@ class DaycentExecutor:
 
         Args:
             tmpdir: The temporary folder being used for this execution.
-            params: The study parameters.
+            params: The simulation parameters.
             wth_file_path: The path for the file created with weather data.
             mapunit_key: The ID of the SSURGO map unit being processed.
             site_elevation: The elevation in the middle point of the parcel.
@@ -169,8 +169,8 @@ class DaycentExecutor:
 
         await BuildClimateChangeFiles(
             dest_dir=tmpdir,
-            start_year=params["study_start_year"],
-            end_year=params["study_end_year"],
+            start_year=params["simulation_start_year"],
+            end_year=params["simulation_end_year"],
             wth_file=wth_file_path,
         ).build()
 
@@ -178,8 +178,8 @@ class DaycentExecutor:
 
         await BuildScheduleFile(
             dest_dir=tmpdir,
-            start_year=params["study_start_year"],
-            end_year=params["study_end_year"],
+            start_year=params["simulation_start_year"],
+            end_year=params["simulation_end_year"],
         ).build()
 
     def get_parcel_mapunits(self) -> dict:
@@ -242,13 +242,13 @@ class DaycentExecutor:
             expected_output="Generating list file: output.lis",
         )
 
-    def upload_results(self, study_id: int, results: dict):
+    def upload_results(self, simulation_id: int, results: dict):
         """
         Upload the results of the model execution to
         the results layer in ArcGIS Online.
 
         Args:
-            study_id: ID of the study. OBJECTID column.
+            simulation_id: ID of the simulation. OBJECTID column.
             results: The results read from the model output.
         """
 
@@ -260,14 +260,14 @@ class DaycentExecutor:
                     geometry=self.parcel.geometry,
                     attributes=dict(
                         parcel_key=self.parcel.attributes["parcel_key"],
-                        study_id=study_id,
+                        simulation_id=simulation_id,
                         simulation_date=f"{year}-01-01",
                         carbon_stock=value,
                     ),
                 )
             )
 
-        self.agol_api.add_list(settings.agol_studies_layer_id, features)
+        self.agol_api.add_list(settings.agol_simulations_layer_id, features)
 
     def read_results(self, tmpdir: str, vars: list[str]) -> dict[dict[float]]:
         """
@@ -356,5 +356,5 @@ if __name__ == "__main__":
 
     executor = DaycentExecutor()
     asyncio.run(
-        executor.execute(211091, 2, dict(study_start_year=2021, study_end_year=2050))
+        executor.execute(211091, 2, dict(simulation_start_year=2021, simulation_end_year=2050))
     )

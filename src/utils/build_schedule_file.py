@@ -69,7 +69,7 @@ class BuildScheduleFile:
         lines.append([-1, "pH shift"])
 
         # Soil warming
-        # Not used in the study.
+        # Not used in the simulations.
         lines.append([-1, "Soil warming"])
 
         # Nitrogen input scalar option

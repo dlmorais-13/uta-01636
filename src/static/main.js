@@ -40,17 +40,17 @@ const router = VueRouter.createRouter({
       component: () => loadModule('/pages/parcels-page.vue', options)
     },
     {
-      path: '/studies',
-      component: () => loadModule('/pages/studies-page.vue', options)
+      path: '/simulations',
+      component: () => loadModule('/pages/simulations-page.vue', options)
     },
     {
-      path: '/studies/new',
-      component: () => loadModule('/pages/study-create-page.vue', options)
+      path: '/simulations/new',
+      component: () => loadModule('/pages/simulation-create-page.vue', options)
     },
     {
-      name: 'studies-view',
-      path: '/studies/:id1/:id2?',
-      component: () => loadModule('/pages/studies-view-page.vue', options)
+      name: 'simulations-view',
+      path: '/simulations/:id1/:id2?',
+      component: () => loadModule('/pages/simulations-view-page.vue', options)
     },
     {
       path: '/admin',

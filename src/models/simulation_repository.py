@@ -7,56 +7,56 @@ from src.settings import settings
 from src.utils.date_utils import Agol_Now
 
 
-class StudyColumns(Enum):
+class SimulationColumns(Enum):
     """
-    Columns present in the ArcGIS Online table for the list of studies.
-    To access the column name use the value of the enum (e.g.: StudyColumns.PARAMETERS.value)
+    Columns present in the ArcGIS Online table for the list of simulations.
+    To access the column name use the value of the enum (e.g.: SimulationColumns.PARAMETERS.value)
     """
 
     OBJECTID = "OBJECTID"
     """Primary key."""
 
     PARAMETERS = "params"
-    """The list of parameters in the study."""
+    """The list of parameters in the simulation."""
 
     FILTERS = "filters"
-    """The list of filters for the study."""
+    """The list of filters for the simulation."""
 
     OWNER = "owner"
-    """The identifier of the user who created the study."""
+    """The identifier of the user who created the simulation."""
 
     STATUS = "status"
-    """The status of the study."""
+    """The status of the simulation."""
 
     CREATED_DATE = "created_date"
-    """Date when the study was created."""
+    """Date when the simulation was created."""
 
     COMPLETED_DATE = "completed_date"
-    """Date when all of the studies calculations were completed."""
+    """Date when all of the simulations calculations were completed."""
 
 
-class StudyStatus(Enum):
+class SimulationStatus(Enum):
     """
-    Possible statuses for a study in a given time.
+    Possible statuses for a simulation in a given time.
     """
 
     CREATED = "created"
-    """The study was just created and its initial processing was not done yet."""
+    """The simulation was just created and its initial processing was not done yet."""
 
     IN_PROGRESS = "in_progress"
-    """The study's jobs were created and are currently available for execution."""
+    """The simulation's jobs were created and are currently available for execution."""
 
     COMPLETED = "completed"
-    """All of the study's jobs were executed and it is available for analysis."""
+    """All of the simulation's jobs were executed and it is available for analysis."""
 
     FAILED = "failed"
-    """Some of the study's jobs failed to be executed."""
+    """Some of the simulation's jobs failed to be executed."""
 
 
-class StudyRepository:
+class SimulationRepository:
     """
-    Repository class to access studies data.
-    Linked to object "UTA01636 Studies > Study List" in ArcGIS Online.
+    Repository class to access simulations data.
+    Linked to object "UTA01636 Simulations > Simulation List" in ArcGIS Online.
     """
 
     api: AgolAPI
@@ -64,7 +64,7 @@ class StudyRepository:
 
     def __init__(self):
         self.api = AgolAPI_Injector()
-        self.table_ref = self.api.get_table_ref(settings.agol_studies_layer_id)
+        self.table_ref = self.api.get_table_ref(settings.agol_simulations_layer_id)
 
     def _feature_to_dict(self, feature: Feature) -> dict:
         """
@@ -106,45 +106,45 @@ class StudyRepository:
             )
         )
 
-    def get_study(self, study_id: int) -> dict:
+    def get_simulation(self, simulation_id: int) -> dict:
         """
-        Retrieves a study using its ID.
+        Retrieves a simulation using its ID.
 
         Args:
-            study_id: The ID of the study to retrieve.
+            simulation_id: The ID of the simulation to retrieve.
 
         Returns:
-            The retrieved study.
+            The retrieved simulation.
         """
-        study = self.api.get_by_id(self.table_ref, study_id)
-        return self._feature_to_dict(study)
+        simulation = self.api.get_by_id(self.table_ref, simulation_id)
+        return self._feature_to_dict(simulation)
 
-    def list_studies(self) -> list[dict]:
+    def list_simulations(self) -> list[dict]:
         """
-        Lists all studies.
+        Lists all simulations.
 
         Returns:
-            The list of all the studies.
+            The list of all the simulations.
         """
-        studies = self.table_ref.query(
+        simulations = self.table_ref.query(
             where="1=1",
             return_all_records=True,
         )
 
-        return [self._feature_to_dict(f) for f in studies.features]
+        return [self._feature_to_dict(f) for f in simulations.features]
 
-    def create_study(
+    def create_simulation(
         self, filters: list[dict] = [], parameters: list[dict] = []
     ) -> dict:
         """
-        Creates a new study.
+        Creates a new simulation.
 
         Args:
-            filters: List of filters for the study.
-            parameters: List of parameters for the study.
+            filters: List of filters for the simulation.
+            parameters: List of parameters for the simulation.
 
         Returns:
-            The created study.
+            The created simulation.
         """
 
         result = self.api.add_list(
@@ -162,5 +162,5 @@ class StudyRepository:
             ],
         )
 
-        study_id = result[0]["objectId"]
-        return self.get_study(study_id)
+        simulation_id = result[0]["objectId"]
+        return self.get_simulation(simulation_id)

@@ -53,7 +53,7 @@
                         <router-link class="nav-link" to="/parcels">Parcels</router-link>
                     </li>
                     <li class="nav-item">
-                        <router-link class="nav-link" to="/studies">Studies</router-link>
+                        <router-link class="nav-link" to="/simulations">Simulations</router-link>
                     </li>
                     <!-- <li class="nav-item">
                         <router-link class="nav-link" to="/admin">Admin</router-link>

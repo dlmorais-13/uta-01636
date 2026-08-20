@@ -1,6 +1,6 @@
 <template>
   <div class="flex-grow-1 pb-4">
-    <HeroBanner text="Create New Study"></HeroBanner>
+    <HeroBanner text="Create New Simulation"></HeroBanner>
 
     <div class="container">
       <div class="row mt-5">
@@ -126,14 +126,14 @@
 
         <div class="col-lg-4 current-filters-params-div">
           <UsuCard>
-            <p class="text-muted fst-italic small">Click on a filter or parameter to remove it from the study
+            <p class="text-muted fst-italic small">Click on a filter or parameter to remove it from the simulation
               configuration.</p>
 
             <div>
               <h4>Filters</h4>
               <span v-if="!filters.length" class="text-muted font-italic">No filters applied.</span>
               <div v-else class="d-flex gap-half flex-wrap">
-                <StudyParameter v-for="(f, idx) of filters" :key="idx" :parameter="f" @click="removeFilter(idx)"
+                <SimulationParameter v-for="(f, idx) of filters" :key="idx" :parameter="f" @click="removeFilter(idx)"
                   class="clickable" />
               </div>
             </div>
@@ -142,13 +142,13 @@
               <h4>Parameters</h4>
               <span v-if="!parameters.length" class="text-muted font-italic">No parameters applied.</span>
               <div v-else class="d-flex gap-half flex-wrap">
-                <StudyParameter v-for="(p, idx) of parameters" :key="idx" :parameter="p" @click="removeParamter(idx)"
+                <SimulationParameter v-for="(p, idx) of parameters" :key="idx" :parameter="p" @click="removeParamter(idx)"
                   class="clickable" />
               </div>
             </div>
 
             <div class="my-3">
-              <h4>Study numbers</h4>
+              <h4>Simulation numbers</h4>
 
               <div>
                 <template v-if="!loadingParcelStats">
@@ -162,8 +162,8 @@
             </div>
 
             <div class="mt-5">
-              <ButtonSpinner class="btn btn-block btn-lg btn-primary" @click="createStudy()" :loading="savingStudy">
-                Create Study
+              <ButtonSpinner class="btn btn-block btn-lg btn-primary" @click="createSimulation()" :loading="savingSimulation">
+                Create Simulation
               </ButtonSpinner>
             </div>
           </UsuCard>
@@ -176,7 +176,7 @@
 <script setup>
 import HeroBanner from '../components/hero-banner.vue';
 import UsuCard from '../components/usu-card.vue';
-import StudyParameter from '../components/study-parameter.vue';
+import SimulationParameter from '../components/simulation-parameter.vue';
 import { ref, onMounted } from 'vue';
 import UsuSpinner from '../components/usu-spinner.vue';
 import ButtonSpinner from '../components/button-spinner.vue';
@@ -195,8 +195,8 @@ const parcelCount = ref(0);
 const parcelTotalArea = ref(0);
 // Indicates if the parcel statistics are being loaded.
 const loadingParcelStats = ref(false);
-// Indicates if the system is saving the study.
-const savingStudy = ref(false);
+// Indicates if the system is saving the simulation.
+const savingSimulation = ref(false);
 // Stores the current configuration in the wizard.
 const dataToAdd = ref({});
 // List of the filters available. They are loaded only once.
@@ -224,7 +224,7 @@ const [countyList, basinList, cropList, irrTypeList] = await Promise.all([
 filtersAvailable.value.push({
   type: 'location',
   name: 'County',
-  description: 'Filters the study to consider only the parcels located in specific counties.',
+  description: 'Filters the simulation to consider only the parcels located in specific counties.',
   options: countyList
 });
 
@@ -232,7 +232,7 @@ filtersAvailable.value.push({
 filtersAvailable.value.push({
   type: 'location',
   name: 'Basin',
-  description: 'Filters the study to consider only the parcels located in specific basins.',
+  description: 'Filters the simulation to consider only the parcels located in specific basins.',
   options: basinList
 });
 
@@ -240,7 +240,7 @@ filtersAvailable.value.push({
 filtersAvailable.value.push({
   type: 'management',
   name: 'Crop',
-  description: 'Filters the study to consider only the parcels currently cultivating specific crops.',
+  description: 'Filters the simulation to consider only the parcels currently cultivating specific crops.',
   options: cropList.map(i => i.value)
 });
 
@@ -249,7 +249,7 @@ filtersAvailable.value.push({
   type: 'management',
   name: 'Irrigation Type',
   column: 'irr_type',
-  description: 'Filters the study to consider only the parcels currently using specific irrigation types.',
+  description: 'Filters the simulation to consider only the parcels currently using specific irrigation types.',
   options: irrTypeList.map(i => i.value)
 });
 
@@ -561,12 +561,12 @@ function dataToAddValid() {
 }
 
 /**
- * Creates the new study.
+ * Creates the new simulation.
  */
-async function createStudy() {
-  savingStudy.value = true;
-  this.validateStudyConfiguration();
-  const resp = await fetch('/api/studies/', {
+async function createSimulation() {
+  savingSimulation.value = true;
+  this.validateSimulationConfiguration();
+  const resp = await fetch('/api/simulations/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -580,12 +580,12 @@ async function createStudy() {
   if (resp.ok) {
     const content = await resp.json();
     if (content.OBJECTID) {
-      router.push('/studies')
+      router.push('/simulations')
     } else {
-      savingStudy.value = false;
+      savingSimulation.value = false;
     }
   } else {
-    savingStudy.value = false;
+    savingSimulation.value = false;
   }
 }
 
@@ -604,9 +604,9 @@ function validateParameters() {
 }
 
 /**
- * Checks if the study configuration is valid.
+ * Checks if the simulation configuration is valid.
  */
-function validateStudyConfiguration() {
+function validateSimulationConfiguration() {
   // TODO implement properly.
   this.validateFilters();
   this.validateParameters();

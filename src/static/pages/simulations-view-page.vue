@@ -6,7 +6,7 @@
       <div class="bg-white p-3 position-absolute shadow" style="top: 1em; right: 1em;" v-if="totalCarbonStock.length">
         <div>Total Carbon Stock:</div>
         <strong v-for="(tcs, idx) of totalCarbonStock" :key="idx" class="d-block">
-          Study {{ studies[idx].code }}: {{ tcs.toFixed(3) }} Mg C / ha
+          Simulation {{ simulations[idx].code }}: {{ tcs.toFixed(3) }} Mg C / ha
         </strong>
       </div>
     </arcgis-map>
@@ -24,12 +24,12 @@ import LayerMerger from '../utils/layer-merger.mjs';
 
 const route = useRoute();
 
-const studies = ref([{ id: route.params.id1, code: 'A' }]);
-if (route.params.id2) studies.value.push({ id: route.params.id2, code: 'B' });
+const simulations = ref([{ id: route.params.id1, code: 'A' }]);
+if (route.params.id2) simulations.value.push({ id: route.params.id2, code: 'B' });
 
 const totalCarbonStock = ref([]);
 
-const serviceIdResp = await fetch('/api/studies/config/view_service_id');
+const serviceIdResp = await fetch('/api/simulations/config/view_service_id');
 const serviceId = await serviceIdResp.json();
 
 const [
@@ -90,14 +90,14 @@ const gradientRenderer = new SimpleRenderer({
   visualVariables: [colorVisualVariable] // Injects the gradient logic
 });
 
-const featureLayers = studies.value.map(study => new FeatureLayer({
+const featureLayers = simulations.value.map(simulation => new FeatureLayer({
   portalItem: { id: serviceId },
   outFields: ["*"],
   // minScale: 500000,
   // maxScale: 1000,
   renderer: gradientRenderer,
   popupEnabled: true,
-  definitionExpression: `study_id = '${study.id}'`,
+  definitionExpression: `simulation_id = '${simulation.id}'`,
   // labelingInfo: [numberLabelClass],
   timeInfo: {
     startField: 'simulation_date',

@@ -1,7 +1,7 @@
 <template>
-    <span class="study-parameter">
-        <span class="study-parameter-name">{{ getName() }}</span>
-        <span class="study-parameter-value">{{ getValue() }}</span>
+    <span class="simulation-parameter">
+        <span class="simulation-parameter-name">{{ getName() }}</span>
+        <span class="simulation-parameter-value">{{ getValue() }}</span>
     </span>
 </template>
 
@@ -35,7 +35,7 @@ function getValue() {
 </script>
 
 <style scoped>
-.study-parameter {
+.simulation-parameter {
     display: inline-flex;
     align-items: center;
     background-color: var(--usu-white);
@@ -43,18 +43,18 @@ function getValue() {
     border: 1px solid var(--usu-aggie-blue);
 }
 
-.study-parameter > span {
+.simulation-parameter > span {
     padding: 0 5px;
 }
 
-.study-parameter-name {
+.simulation-parameter-name {
     font-weight: bold;
     background-color: var(--usu-aggie-blue);
     color: var(--usu-blue-light);
     text-transform: capitalize;
 }
 
-.study-parameter-value {
+.simulation-parameter-value {
     font-style: italic;
     color: var(--usu-aggie-blue);
 }

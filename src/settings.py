@@ -45,11 +45,11 @@ class Settings(BaseSettings):
     agol_base_layer_view_id: str
     """The ID for the base layer public view in ArcGIS Online."""
 
-    agol_studies_layer_id: str
-    """The ID for the studies layer in ArcGIS Online."""
+    agol_simulations_layer_id: str
+    """The ID for the simulations layer in ArcGIS Online."""
 
-    agol_studies_layer_view_id: str
-    """The ID for the public view of the studies in ArcGIS Online."""
+    agol_simulations_layer_view_id: str
+    """The ID for the public view of the simulations in ArcGIS Online."""
 
     ssurgo_mapunits_layer_id: str
     """The ID for SSURGO layer of map units in ArcGIS Online."""

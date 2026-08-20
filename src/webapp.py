@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.requests import Request
-from src.routers import admin, parcels, studies
+from src.routers import admin, parcels, simulations
 
 app = FastAPI(debug=True)
 
@@ -33,4 +33,4 @@ def read_root():
 
 app.include_router(admin.router)
 app.include_router(parcels.router)
-app.include_router(studies.router)
+app.include_router(simulations.router)

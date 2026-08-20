@@ -1,15 +1,15 @@
 <template>
     <div class="flex-grow-1">
-        <HeroBanner text="Studies">
-            <template v-slot:actions v-if="studies.length > 0">
-                <router-link to="/studies/new">
-                    <button class="btn btn-primary">Create New Study</button>
+        <HeroBanner text="Simulations">
+            <template v-slot:actions v-if="simulations.length > 0">
+                <router-link to="/simulations/new">
+                    <button class="btn btn-primary">Create New Simulation</button>
                 </router-link>
             </template>
         </HeroBanner>
 
         <div class="container my-5">
-            <table class="table table-striped" v-if="studies.length > 0">
+            <table class="table table-striped" v-if="simulations.length > 0">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -21,12 +21,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="study in studies">
-                        <td>{{ study.OBJECTID }}</td>
+                    <tr v-for="simulation in simulations">
+                        <td>{{ simulation.OBJECTID }}</td>
                         <td>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;" v-if="study.filters && study.filters.length">
-                                <template v-for="(f, fIdx) in study.filters" :key="fIdx">
-                                    <StudyParameter :parameter="f"></StudyParameter>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;" v-if="simulation.filters && simulation.filters.length">
+                                <template v-for="(f, fIdx) in simulation.filters" :key="fIdx">
+                                    <SimulationParameter :parameter="f"></SimulationParameter>
                                 </template>
                             </div>
                             <div v-else class="text-muted font-italic">
@@ -34,9 +34,9 @@
                             </div>
                         </td>
                         <td>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;" v-if="study.params && study.params.length">
-                                <template v-for="(p, pIdx) in study.params" :key="pIdx">
-                                    <StudyParameter :parameter="p"></StudyParameter>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;" v-if="simulation.params && simulation.params.length">
+                                <template v-for="(p, pIdx) in simulation.params" :key="pIdx">
+                                    <SimulationParameter :parameter="p"></SimulationParameter>
                                 </template>
                             </div>
                             <div v-else class="text-muted font-italic">
@@ -50,25 +50,25 @@
                                     <div>Completed:</div>
                                 </div>
                                 <div>
-                                    <div>{{ new Date(study.created_date).toLocaleString() }}</div>
-                                    <div>{{ study.completed_date ? new Date(study.completed_date).toLocaleString() : '-'
+                                    <div>{{ new Date(simulation.created_date).toLocaleString() }}</div>
+                                    <div>{{ simulation.completed_date ? new Date(simulation.completed_date).toLocaleString() : '-'
                                         }}
                                     </div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <span :class="`text-capitalize badge badge-${getStatusClass(study.status)}`">{{
-                                getStatusText(study.status) }}</span>
+                            <span :class="`text-capitalize badge badge-${getStatusClass(simulation.status)}`">{{
+                                getStatusText(simulation.status) }}</span>
                         </td>
                         <td>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
-                                <router-link class="btn btn-sm btn-primary" :disabled="study.status != 'completed'"
-                                    :to="{ name: 'studies-view', params: { id1: study.OBJECTID } }">
+                                <router-link class="btn btn-sm btn-primary" :disabled="simulation.status != 'completed'"
+                                    :to="{ name: 'simulations-view', params: { id1: simulation.OBJECTID } }">
                                     Open
                                 </router-link>
                                 <button class="btn btn-sm btn-secondary"
-                                    :disabled="study.status != 'completed'">Compare</button>
+                                    :disabled="simulation.status != 'completed'">Compare</button>
                             </div>
                         </td>
                     </tr>
@@ -76,9 +76,9 @@
             </table>
 
             <div v-else class="text-center">
-                <h5 class="text-muted font-italic mb-4">No studies found.</h5>
-                <router-link to="/studies/new">
-                    <button class="btn btn-lg btn-primary">Create New Study</button>
+                <h5 class="text-muted font-italic mb-4">No simulations found.</h5>
+                <router-link to="/simulations/new">
+                    <button class="btn btn-lg btn-primary">Create New Simulation</button>
                 </router-link>
             </div>
         </div>
@@ -87,10 +87,10 @@
 
 <script setup>
 import HeroBanner from '../components/hero-banner.vue';
-import StudyParameter from '../components/study-parameter.vue';
+import SimulationParameter from '../components/simulation-parameter.vue';
 
-const studiesResp = await fetch('/api/studies');
-const studies = await studiesResp.json();
+const simulationsResp = await fetch('/api/simulations');
+const simulations = await simulationsResp.json();
 
 function getStatusText(status) {
     return status.replace('_', ' ');
