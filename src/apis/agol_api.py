@@ -367,8 +367,8 @@ class AgolAPI:
         """
 
         if self._latest_survey_year is None:
-            table_ref = self.get_table_ref(settings.agol_base_layer_view_id)
-            result = table_ref.query(
+            layer_ref = self.get_layer_ref(settings.agol_base_layer_view_id)
+            result = layer_ref.query(
                 out_statistics=[
                     {
                         "statisticType": "max",

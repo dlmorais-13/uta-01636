@@ -15,8 +15,11 @@ const props = defineProps({
     }
 });
 
-const serviceIdResp = await fetch('/api/parcels/config/view_service_id')
-const serviceId = await serviceIdResp.json()
+const [serviceId, lastSurveyYear] = await Promise.all([
+    fetch('/api/parcels/config/view_service_id').then(r => r.json()),
+    fetch('/api/parcels/config/last_survey_year').then(r => r.json())
+]);
+
 const [
     FeatureLayer,
     Map,
@@ -41,9 +44,12 @@ let historyDataWidget = new CustomContent({
         const parcel_key = event.graphic.attributes.parcel_key;
         if (!historyDataWidgetCache[parcel_key]) {
             historyDataWidgetCache[parcel_key] = new Promise(async (resolve) => {
-                const queryParams = tableLayer.createQuery();
-                queryParams.where = `parcel_key = '${parcel_key}'`;
-                const queryResult = await tableLayer.queryFeatures(queryParams);
+                const queryParams = featureLayer.createQuery();
+                const queryResult = await featureLayer.queryFeatures({
+                    where: `parcel_key = '${parcel_key}'`,
+                    returnGeometry: false,
+                    outFields: ['survey_year', 'area', 'land_use', 'land_use_code', 'irr_type', 'crop']
+                });
                 const historyFeatures = queryResult.features.sort(
                     (a, b) => {
                         if (a.attributes.survey_year === b.attributes.survey_year) {
@@ -52,15 +58,9 @@ let historyDataWidget = new CustomContent({
                         return b.attributes.survey_year - a.attributes.survey_year;
                     }
                 );
-                
-                const originalFeatureQueryResponse = await featureLayer.queryFeatures({
-                    where: `OBJECTID = ${event.graphic.attributes.OBJECTID}`,
-                    outFields: ["*"],
-                    returnGeometry: true
-                });
-                const originalFeature = originalFeatureQueryResponse.features[0];
-                const parcelArea = originalFeature.attributes.Shape__Area;
-                
+
+                const parcelArea = event.graphic.attributes.Shape__Area;
+
                 return resolve(`<div style="width: 100%; font-size: 12px;">
                     <h3 style="font-size: 20px; color: #4A4A4A; font-weight: 400; margin-bottom: .25rem;">
                         Land Use History
@@ -90,13 +90,13 @@ let historyDataWidget = new CustomContent({
                                         <strong>${feature.attributes.survey_year}</strong>
                                         <br />
                                         ${Math.min(Number(feature.attributes.area), parcelArea).toLocaleString('en-US', {
-                                            minimumFractionDigits: 2, 
-                                            maximumFractionDigits: 2
-                                        })}
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}
                                         / ${Math.min(100, Number(feature.attributes.area) / parcelArea * 100).toLocaleString('en-US', {
-                                            minimumFractionDigits: 2, 
-                                            maximumFractionDigits: 2
-                                        })}%
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}%
                                     </td>
                                     <td style="padding: 6px 8px;">
                                         ${feature.attributes.land_use} (${feature.attributes.land_use_code})
@@ -119,23 +119,18 @@ let soilDataWidgetCache = {};
 let soilDataWidget = new CustomContent({
     outFields: ["*"],
     creator: async (event) => {
+        console.log(event.graphic.attributes);
         const parcel_key = event.graphic.attributes.parcel_key;
         if (!soilDataWidgetCache[parcel_key]) {
             soilDataWidgetCache[parcel_key] = new Promise(async (resolve) => {
                 const soilData = JSON.parse(event.graphic.attributes.map_unit_data).sort((a, b) => b.area - a.area);
                 const soilIdsParam = soilData.map(s => `map_unit_ids=${s.id}`).join('&');
-        
+
                 const soilsResp = await fetch(`/api/parcels/soils/basic_data?${soilIdsParam}`);
                 const soils = await soilsResp.json();
-                
-                const originalFeatureQueryResponse = await featureLayer.queryFeatures({
-                    where: `OBJECTID = ${event.graphic.attributes.OBJECTID}`,
-                    outFields: ["*"],
-                    returnGeometry: true
-                });
-                const originalFeature = originalFeatureQueryResponse.features[0];
-                const parcelArea = originalFeature.attributes.Shape__Area;
-                
+
+                const parcelArea = event.graphic.attributes.Shape__Area;
+
                 return resolve(`<div style="width: 100%; font-size: 12px;">
                     <h3 style="font-size: 20px; color: #4A4A4A; font-weight: 400; margin-bottom: .25rem;">
                         Soil Composition
@@ -163,21 +158,21 @@ let soilDataWidget = new CustomContent({
                                     </td>
                                     <td style="padding: 6px 8px;">
                                         ${s.area.toLocaleString('en-US', {
-                                            minimumFractionDigits: 2, 
-                                            maximumFractionDigits: 2
-                                        })}
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}
                                         / ${Math.min(100, Number(s.area) / parcelArea * 100).toLocaleString('en-US', {
-                                            minimumFractionDigits: 2, 
-                                            maximumFractionDigits: 2
-                                        })}%
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}%
                                     </td>
                                     <td style="padding: 6px 8px;">
                                         ${soils
-                                            .find(soil => `${soil.mukey}` === s.id)
-                                            .crop_yield
-                                            .map(scy => `<div>${scy.cropname}: ${scy.irryield_r} ${scy.yldunits}</div>`)
-                                            .join('')
-                                        }
+                        .find(soil => `${soil.mukey}` === s.id)
+                        .crop_yield
+                        .map(scy => `<div>${scy.cropname}: ${scy.irryield_r} ${scy.yldunits}</div>`)
+                        .join('')
+                    }
                                     </td>
                                 </tr>
                             `).join('')}
@@ -186,7 +181,7 @@ let soilDataWidget = new CustomContent({
                 </div>`);
             });
         }
-        
+
         return await soilDataWidgetCache[parcel_key];
     }
 });
@@ -201,7 +196,7 @@ let addressWidget = new CustomContent({
                 const mapPoint = centroidOperator.execute(event.graphic.geometry);
                 const lat = Number(mapPoint.latitude).toFixed(6);
                 const lon = Number(mapPoint.longitude).toFixed(6);
-        
+
                 const locatorResp = await locator.locationToAddress(locatorUrl, { location: mapPoint })
                     .catch((err) => {
                         console.error(err);
@@ -223,14 +218,10 @@ let addressWidget = new CustomContent({
     }
 });
 
-const tableLayer = new FeatureLayer({
-    portalItem: { id: serviceId },
-    layerId: 1
-});
-
-const featureLayer = new FeatureLayer({ 
+const featureLayer = new FeatureLayer({
     portalItem: { id: serviceId },
     outFields: ["*"],
+    definitionExpression: `survey_year = '${lastSurveyYear}'`,
     minScale: 500000,
     maxScale: 1000,
     popupEnabled: true,
@@ -298,7 +289,7 @@ onMounted(async () => {
         const hitTestResult = await viewElement.hitTest(event.detail.screenPoint, {
             include: [featureLayer]
         });
-        
+
         if (hitTestResult.results.length > 0) {
             props.onParcelSelected(hitTestResult.results[0].graphic.attributes);
             await popupComponent.fetchFeatures(event.detail);
