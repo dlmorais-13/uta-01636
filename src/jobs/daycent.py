@@ -7,6 +7,7 @@ from functools import reduce
 from collections import defaultdict
 from arcgis.features import Feature
 
+from src.jobs.job import Job
 from src.settings import settings
 from src.apis.exec import exec
 from src.utils.build_soilsin import BuildSoilsin
@@ -21,7 +22,7 @@ from src.apis.ssurgo_api import Ssurgo_API
 LOGGER = logging.getLogger(__name__)
 
 
-class DaycentExecutor:
+class DaycentExecutor(Job):
     """
     Class to execute Daycent for a given parcel and simulation.
 
@@ -44,9 +45,7 @@ class DaycentExecutor:
         self.agol_api = AgolAPI_Injector()
         self.ssurgo_api = Ssurgo_API()
 
-    async def execute(
-        self, parcel_id: int, simulation_id: int, simulation_params: dict | None = None
-    ):
+    async def logic(self, params: dict):
         """
         Executes DayCent model for a given parcel and simulation.
 
@@ -58,18 +57,11 @@ class DaycentExecutor:
                 the database.
         """
 
-        LOGGER.info(
-            f"Starting Daycent executions for simulation {simulation_id} and parcel {parcel_id}."
-        )
+        LOGGER.info(f"Starting Daycent execution with parameters {params}.")
 
-        if simulation_params is None:
-            simulation_table_ref = self.agol_api.get_table_ref(
-                settings.agol_simulations_layer_id
-            )
-            simulation_query_res = simulation_table_ref.query(where=f"OBJECTID = {simulation_id}")
-            simulation_obj = simulation_query_res.features[0].attributes
-            simulation_params = json.loads(simulation_obj["params"])
-        self.params = simulation_params
+        self.params = params
+        parcel_id = self.params["parcel_id"]
+        simulation_id = self.params["simulation_id"]
 
         base_layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
         query_res = base_layer_ref.query(
@@ -77,9 +69,7 @@ class DaycentExecutor:
         )
         self.parcel = query_res.features[0]
 
-        site_elevation, wth_file_path = await BuildWeatherFile().build(
-            self.parcel
-        )
+        site_elevation, wth_file_path = await BuildWeatherFile().build(self.parcel)
 
         parcel_mapunits = self.get_parcel_mapunits()
         LOGGER.info(f"Parcel {parcel_id} map units: {parcel_mapunits}")
@@ -97,7 +87,6 @@ class DaycentExecutor:
 
                 await self.prepare_input_files(
                     tmpdir=tmpdir,
-                    params=simulation_params,
                     mapunit_key=mapunit_key,
                     site_elevation=site_elevation,
                     wth_file_path=wth_file_path,
@@ -127,7 +116,6 @@ class DaycentExecutor:
     async def prepare_input_files(
         self,
         tmpdir: str,
-        params: dict,
         wth_file_path: str,
         mapunit_key: int,
         site_elevation: int | None,
@@ -169,8 +157,8 @@ class DaycentExecutor:
 
         await BuildClimateChangeFiles(
             dest_dir=tmpdir,
-            start_year=params["simulation_start_year"],
-            end_year=params["simulation_end_year"],
+            start_year=self.params["start_year"],
+            end_year=self.params["end_year"],
             wth_file=wth_file_path,
         ).build()
 
@@ -178,8 +166,8 @@ class DaycentExecutor:
 
         await BuildScheduleFile(
             dest_dir=tmpdir,
-            start_year=params["simulation_start_year"],
-            end_year=params["simulation_end_year"],
+            start_year=self.params["start_year"],
+            end_year=self.params["end_year"],
         ).build()
 
     def get_parcel_mapunits(self) -> dict:
@@ -232,7 +220,7 @@ class DaycentExecutor:
         Args:
             tmpdir: The temporary working folder.
         """
-        
+
         ddlist_path = os.path.join(tmpdir, "DDlist100_rev491")
         exec(
             ddlist_path,
@@ -271,7 +259,7 @@ class DaycentExecutor:
 
     def read_results(self, tmpdir: str, vars: list[str]) -> dict[dict[float]]:
         """
-        Call the execution of the model's output file generation and 
+        Call the execution of the model's output file generation and
         read the results into a dictionary.
 
         Args:
@@ -330,7 +318,7 @@ class DaycentExecutor:
 
         Args:
             results_per_mapunit: The dictionary with all the output values for each map unit.
-            
+
         Returns:
             The averaged result.
         """
@@ -356,5 +344,7 @@ if __name__ == "__main__":
 
     executor = DaycentExecutor()
     asyncio.run(
-        executor.execute(211091, 2, dict(simulation_start_year=2021, simulation_end_year=2050))
+        executor.logic(
+            dict(parcel_id=211091, simulation_id=2, start_year=2021, end_year=2050)
+        )
     )

@@ -93,18 +93,12 @@ class SimulationRepository:
             The feature transformed from the parameters.
         """
 
-        filters=json.dumps(attributes["filters"] or [])
+        filters = json.dumps(attributes["filters"] or [])
         del attributes["filters"]
-        params=json.dumps(attributes["params"] or [])
+        params = json.dumps(attributes["params"] or [])
         del attributes["params"]
 
-        return Feature(
-            attributes=dict(
-                **attributes,
-                filters=filters,
-                params=params
-            )
-        )
+        return Feature(attributes=dict(**attributes, filters=filters, params=params))
 
     def get_simulation(self, simulation_id: int) -> dict:
         """
