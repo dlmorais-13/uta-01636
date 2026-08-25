@@ -1,4 +1,4 @@
-from src.utils.management_options.ManagementOption import ManagementOption
+from src.utils.management_options.ManagementOption import ManagementOption, ExecType
 
 
 class CropRotation(ManagementOption):
@@ -18,7 +18,28 @@ class CropRotation(ManagementOption):
     TODO Add parameters for the days of the events.
     """
 
-    def get_schedule_content(self):
+    def get_type(self) -> ExecType:
+        # TODO This can be both simulation or base
+        return "base"
+
+    def get_block_header(self):
+        lines: list[list[int | str]] = []
+        lines.append([self.block_number, "Block #"])
+        lines.append([self.end_year, "Last year"])
+        lines.append([len(self.params["crop"]), "Repeats # years"])
+
+        # TODO These should change for equilibrium and base.
+        lines.append([self.start_year, "Output starting year"])
+        lines.append([12, "Output month"])
+        lines.append(["1.0", "Output interval"])
+
+        # TODO Check if it is necessary to vary this input.
+        lines.append(["F", "Weather choice"])
+        lines.append(["site.wth"])
+
+        return lines
+
+    def get_block_content(self):
         lines: list[list[int | str]] = []
 
         crops: list[str] = self.params["crop"]

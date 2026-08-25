@@ -82,6 +82,7 @@ def exec(
     cmd = " ".join([executable] + args)
     if status != 0:
         logger.error(f"Error on command execution: Command: {cmd} | Status {status}.")
+        raise Exception(f"Error on command execution: Command: {cmd} | Status {status}.")
     elif expected_output is not None:
         match = next((line for line in stdout_content if expected_output in line), None)
         if match is None:

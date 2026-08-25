@@ -1,13 +1,6 @@
 from colorama import Fore, Style
-from camel_converter import to_snake
 from arcgis.gis import GIS
-from arcgis.features import (
-    FeatureLayerCollection,
-    FeatureLayer,
-    Table,
-    Feature,
-    FeatureSet,
-)
+from arcgis.features import FeatureLayerCollection, FeatureLayer, Table, Feature
 from typing import cast
 from src.settings import settings
 import logging
@@ -379,6 +372,76 @@ class AgolAPI:
             )
             self._latest_survey_year = result.features[0].attributes["max_val"]
         return self._latest_survey_year
+
+    def add_attachment(
+        self,
+        layerIdOrRef: str | FeatureLayer,
+        objectid: int,
+        file_path: str,
+        keywords: str | None = None,
+    ):
+        """
+        Adds an attachment to a feature in a feature layer.
+
+        Args:
+            layerIdOrRef: ID or reference to the layer.
+            objectid: ID of the feature to add the attachment.
+            file_path: Full path of the file to attach.
+        """
+
+        ref = (
+            layerIdOrRef
+            if not isinstance(layerIdOrRef, str)
+            else self.get_layer_ref(layerIdOrRef)
+        )
+        add_result = ref.attachments.add(
+            oid=objectid, file_path=file_path, keywords=keywords
+        )
+        LOGGER.info(f"Add attachment result: {add_result}")
+
+    def get_attachments(self, layerIdOrRef: str | FeatureLayer, objectid: int) -> dict:
+        """
+        Get the list of attachments for a given feature in a layer.
+
+        Args:
+            layerIdOrRef: ID or reference to the layer.
+            objectid: ID of the feature to add the attachment.
+
+        Returns:
+            The dict with the list of attachments.
+        """
+
+        ref = (
+            layerIdOrRef
+            if not isinstance(layerIdOrRef, str)
+            else self.get_layer_ref(layerIdOrRef)
+        )
+        attachment_list = ref.attachments.get_list(oid=objectid)
+        LOGGER.info(attachment_list)
+        return attachment_list
+
+    def download_attachment(
+        self,
+        layerIdOrRef: str | FeatureLayer,
+        objectid: int,
+        attachment_id: str,
+        save_path: str,
+    ):
+        """
+        Downloads a given attachment from a feature in a layer.
+
+        Args:
+            layerIdOrRef: ID or reference to the layer.
+            objectid: ID of the feature to add the attachment.
+            attachment_id: The ID of the attachment.
+            save_path: Full path to save the attachment.
+        """
+        ref = (
+            layerIdOrRef
+            if not isinstance(layerIdOrRef, str)
+            else self.get_layer_ref(layerIdOrRef)
+        )
+        ref.attachments.download(objectid, attachment_id, save_path)
 
 
 class _AgolAPI_Injector:

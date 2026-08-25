@@ -3,7 +3,6 @@ import tempfile
 import shutil
 import logging
 import json
-from functools import reduce
 from collections import defaultdict
 from arcgis.features import Feature
 
@@ -16,6 +15,12 @@ from src.utils.build_site_file import BuildSiteFile
 from src.utils.build_climate_change_files import BuildClimateChangeFiles
 from src.utils.build_fix_file import BuildFixFile
 from src.utils.build_schedule_file import BuildScheduleFile
+from src.utils.management_options.ManagementOption import ExecType
+from src.utils.management_options.ManagementOptionFactory import (
+    get_equilibrium_management_by_basin,
+)
+from src.utils.management_options.CropRotation import CropRotation
+from src.utils.management_options.Monoculture import Monoculture
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.apis.ssurgo_api import Ssurgo_API
 
@@ -55,6 +60,7 @@ class DaycentExecutor(Job):
             simulation_params: The parameters of the simulation being processed.
                 Optional. By default this function will load the parameters from
                 the database.
+            type: Type of the execution. One of "equilibrium", "base" or "simulation".
         """
 
         LOGGER.info(f"Starting Daycent execution with parameters {params}.")
@@ -62,6 +68,7 @@ class DaycentExecutor(Job):
         self.params = params
         parcel_id = self.params["parcel_id"]
         simulation_id = self.params["simulation_id"]
+        exec_type: ExecType = self.params["type"]
 
         base_layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
         query_res = base_layer_ref.query(
@@ -69,6 +76,7 @@ class DaycentExecutor(Job):
         )
         self.parcel = query_res.features[0]
 
+        # TODO Maybe it is necessary to change the weather file build for equilibrium and base executions.
         site_elevation, wth_file_path = await BuildWeatherFile().build(self.parcel)
 
         parcel_mapunits = self.get_parcel_mapunits()
@@ -80,7 +88,9 @@ class DaycentExecutor(Job):
             mapunit_key = int(mapunit["id"])
             LOGGER.info(f"Starting execution for mapunit {mapunit_key}.")
 
-            tmpdir = tempfile.mkdtemp(suffix=f"_{simulation_id}_{parcel_id}")
+            tmpdir = tempfile.mkdtemp(
+                suffix=f"_{simulation_id}_{parcel_id}_{exec_type}"
+            )
 
             try:
                 LOGGER.info(f"Created temporary directory {tmpdir}")
@@ -90,18 +100,35 @@ class DaycentExecutor(Job):
                     mapunit_key=mapunit_key,
                     site_elevation=site_elevation,
                     wth_file_path=wth_file_path,
+                    exec_type=exec_type,
                 )
 
-                self.execute_daycent(tmpdir)
-                results_per_unit[mapunit_key] = self.read_results(
-                    tmpdir, vars=["somtc", "totalc", "totsysc"]
-                )
+                self.execute_daycent(tmpdir, mapunit_key)
+
+                if exec_type == "simulation":
+                    results_per_unit[mapunit_key] = self.read_results(
+                        tmpdir, vars=["somtc", "totalc", "totsysc"]
+                    )
+                else:
+                    ext_file_name = f"{exec_type}_{mapunit_key}.100"
+                    txt_file_name = f"{ext_file_name}.txt"
+                    shutil.copyfile(
+                        os.path.join(tmpdir, ext_file_name),
+                        os.path.join(tmpdir, txt_file_name),
+                    )
+                    # TODO Delete old attachments before adding new.
+                    self.agol_api.add_attachment(
+                        layerIdOrRef=base_layer_ref,
+                        objectid=self.parcel.attributes["OBJECTID"],
+                        file_path=os.path.join(tmpdir, txt_file_name),
+                        keywords=f"{exec_type}:{mapunit_key}",
+                    )
 
                 LOGGER.info(
-                    f"Finished Daycent execution for simulation {simulation_id} and parcel {parcel_id}."
+                    f"Finished Daycent execution for simulation {simulation_id}, parcel {parcel_id}, and map unit {mapunit_key}."
                 )
             except Exception as e:
-                msg = f"Error in Daycent execution for simulation {simulation_id} and parcel {parcel_id}"
+                msg = f"Error in Daycent execution for simulation {simulation_id}, parcel {parcel_id}, and map unit {mapunit_key}"
                 LOGGER.exception(msg)
                 raise Exception(msg) from e
             finally:
@@ -110,8 +137,9 @@ class DaycentExecutor(Job):
                 else:
                     LOGGER.info(f"Not removing direction: {tmpdir}")
 
-        results = self.aggregate_results(results_per_unit)
-        self.upload_results(simulation_id=simulation_id, results=dict(results))
+        if exec_type == "simulation":
+            results = self.aggregate_results(results_per_unit)
+            self.upload_results(simulation_id=simulation_id, results=dict(results))
 
     async def prepare_input_files(
         self,
@@ -119,6 +147,7 @@ class DaycentExecutor(Job):
         wth_file_path: str,
         mapunit_key: int,
         site_elevation: int | None,
+        exec_type: ExecType,
     ):
         """
         Prepare the input files from the model execution.
@@ -132,7 +161,7 @@ class DaycentExecutor(Job):
         """
 
         # Copy files that do not vary between executions.
-        # TODO: Check if linking works instead of copy for daycent input files, except fix.100. kanpilotID(aop861yphyqkvfn2x9xpdkf5)
+        # TODO: Check if linking works instead of copy for daycent input files, except fix.100.
         self.copy_base_files(tmpdir)
 
         # Copy the previously generated weather file.
@@ -155,19 +184,49 @@ class DaycentExecutor(Job):
             components=components,
         ).build()
 
-        await BuildClimateChangeFiles(
-            dest_dir=tmpdir,
-            start_year=self.params["start_year"],
-            end_year=self.params["end_year"],
-            wth_file=wth_file_path,
-        ).build()
+        if exec_type == "simulation":
+            await BuildClimateChangeFiles(
+                dest_dir=tmpdir,
+                start_year=self.params["start_year"],
+                end_year=self.params["end_year"],
+                wth_file=wth_file_path,
+            ).build()
 
         await BuildFixFile(dest_dir=tmpdir, soil_layer_data=soil_layer_data).build()
+
+        if exec_type == "equilibrium":
+            management_option = get_equilibrium_management_by_basin(
+                self.parcel.attributes["basin"],
+                self.params["start_year"],
+                self.params["end_year"],
+                {},
+            )
+        elif exec_type == "base":
+            # TODO Parametrize this.
+            management_option = CropRotation(
+                self.params["start_year"],
+                self.params["end_year"],
+                {"crop": ["C1", "ALF"], "fert": "UREA", "cult": "K", "harv": "G90S"},
+            )
+
+            # Download equilibrium attachments.
+            self.download_attachments(tmpdir, "equilibrium", mapunit_key)
+        else:
+            # TODO Parametrize this.
+            management_option = Monoculture(
+                self.params["start_year"],
+                self.params["end_year"],
+                {"crop": "C1", "fert": "UREA", "cult": "K", "harv": "G90S"},
+            )
+
+            # Download base attachments.
+            self.download_attachments(tmpdir, "base", mapunit_key)
 
         await BuildScheduleFile(
             dest_dir=tmpdir,
             start_year=self.params["start_year"],
             end_year=self.params["end_year"],
+            management=management_option,
         ).build()
 
     def get_parcel_mapunits(self) -> dict:
@@ -181,10 +240,42 @@ class DaycentExecutor(Job):
         map_unit_data = self.parcel.attributes["map_unit_data"]
         return json.loads(map_unit_data)
 
+    def download_attachments(self, tmpdir: str, type: ExecType, mapunit_key: int):
+        """
+        Download the attachments necessary for the extended DayCent execution.
+
+        Args:
+            tmpdir: Temporary working folder to save the attachment.
+            type: Type of the execution of the attachment. Should be the
+                type before the current execution. "base" for "simulation"
+                and "equilibrium" for "base".
+            mapunit_key: ID of the map unit to get the attachment.
+        """
+
+        attachments = self.agol_api.get_attachments(
+            settings.agol_base_layer_id, self.parcel.attributes["OBJECTID"]
+        )
+        keyword = f"{type}:{mapunit_key}"
+        for a in attachments:
+            if a["keywords"] == keyword:
+                self.agol_api.download_attachment(
+                    settings.agol_base_layer_id,
+                    self.parcel.attributes["OBJECTID"],
+                    a["id"],
+                    tmpdir,
+                )
+                shutil.move(
+                    os.path.join(tmpdir, f"{type}_{mapunit_key}.100.txt"),
+                    os.path.join(tmpdir, f"{type}_{mapunit_key}.100"),
+                )
+
     def copy_base_files(self, tmpdir: str):
         """
         Copy to the temporary work folder the files from DayCents
         base directory.
+
+        Args:
+            tmpdir: Temporary working folder to save the attachment.
         """
 
         for file_name in os.listdir(settings.daycent_basedir):
@@ -194,24 +285,44 @@ class DaycentExecutor(Job):
             if os.path.isfile(source_file):
                 shutil.copy(source_file, target_file)
 
-    def execute_daycent(self, tmpdir: str):
+    def execute_daycent(self, tmpdir: str, mapunit_key: int):
         """
         Executes the DayCent model in the working folder.
 
         Args:
             tmpdir: The temporary working folder.
+            mapunit_key: ID of the map unit being processed.
         """
 
         daycent_path = os.path.join(tmpdir, "DDcentEVI_rev491")
-        # return_code = exec(daycent_path, ["-s", "site", "-N", "site"], self.workingDir, logger=LOGGER)
-        return_code = exec(
+
+        match self.params["type"]:
+            case "simulation":
+                args = [
+                    "-s",
+                    "site",
+                    "--site",
+                    f"base_{mapunit_key}.100",
+                ]
+            case "base":
+                args = [
+                    "-s",
+                    "site",
+                    "-W",
+                    f'{self.params["type"]}_{mapunit_key}',
+                    "--site",
+                    f"equilibrium_{mapunit_key}.100",
+                ]
+            case "equilibrium":
+                args = ["-s", "site", "-W", f'{self.params["type"]}_{mapunit_key}']
+
+        exec(
             daycent_path,
-            ["-s", "site"],
+            args,
             tmpdir,
             logger=LOGGER,
             expected_output="Execution success",
         )
-        print(return_code)
 
     def execute_ddlist(self, tmpdir: str):
         """
@@ -345,6 +456,26 @@ if __name__ == "__main__":
     executor = DaycentExecutor()
     asyncio.run(
         executor.logic(
-            dict(parcel_id=211091, simulation_id=2, start_year=2021, end_year=2050)
+            # dict(
+            #     parcel_id=211091,
+            #     simulation_id=16,
+            #     start_year=1,
+            #     end_year=5000,
+            #     type="equilibrium",
+            # )
+            # dict(
+            #     parcel_id=211091,
+            #     simulation_id=16,
+            #     start_year=1850,
+            #     end_year=2025,
+            #     type="base",
+            # )
+            dict(
+                parcel_id=211091,
+                simulation_id=16,
+                start_year=2026,
+                end_year=2026 + 50,
+                type="simulation",
+            )
         )
     )
