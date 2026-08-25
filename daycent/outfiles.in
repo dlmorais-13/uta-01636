@@ -24,7 +24,7 @@ Output (0/1)    file_name       description
 0             dc_sip.csv        # daily evap, tran, resp, system C, and NPP
 0             harvest.csv       # state of the system at time of harvest
 0             cflows.out        # daily carbon flows due to decompostion
-1             year_cflows.out   # annual accumulators of decomp carbon flows
+0             year_cflows.out   # annual accumulators of decomp carbon flows
 0             daily.out         # daily ET, defac, soil temp, snow, and therm units
 0             nflux.out         # daily trace gases, nitrification, denitrification
 0             summary.out       # daily climate, trace gas, and CO resp

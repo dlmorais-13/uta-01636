@@ -3,27 +3,67 @@ UREA   # urea 15 g N/m^2
 0	   FERAMT(2)
 0	   FERAMT(3)
 0	   AUFERT
-0.2    NINHIB
-40     NINHTM   
+0     FERTTYP
+1     FERTAREAF
+15    FERTDEPTH
+0     REFT_CRNF
+50    T_EIGHTY
+0.5     CRFLAMDA
+1     CRF_QTEN
+0.3   NINHIB
+40     NINHTM 
+0     FINHIB(1)  
+0     FINHIB(2)  
+0     FINHIB(3)
+0     UREAKM
+0     UREAKUI
+0     UREAST(1)  
+0     UREAST(2)  
+0.0    FRAC_NH4
 0.0    FRAC_NO3
-
 UAN    # urea ammonium nitrate 15 g N/m^2
 15	   FERAMT(1)
 0	   FERAMT(2)
 0	   FERAMT(3)
 0	   AUFERT
+0     FERTTYP
+1     FERTAREAF
+15    FERTDEPTH
+0     REFT_CRNF
+50    T_EIGHTY
+0.5     CRFLAMDA
+1     CRF_QTEN
 0.2    NINHIB
 40     NINHTM
+0     FINHIB(1)  
+0     FINHIB(2)  
+0     FINHIB(3)
+0     UREAKM
+0     UREAKUI
+0     UREAST(1)  
+0     UREAST(2)  
+0.0    FRAC_NH4
 0.25   FRAC_NO3
-
 AN     # ammonium nitrate 15 g N/m^2
 15	   FERAMT(1)
 0	   FERAMT(2)
 0	   FERAMT(3)
 0	   AUFERT
+0     FERTTYP
+1     FERTAREAF
+15    FERTDEPTH
+0     REFT_CRNF
+50    T_EIGHTY
+0.5     CRFLAMDA
+1     CRF_QTEN
 0.2    NINHIB
 40     NINHTM
+0     FINHIB(1)  
+0     FINHIB(2)  
+0     FINHIB(3)
+0     UREAKM
+0     UREAKUI
+0     UREAST(1)  
+0     UREAST(2)  
+0.0    FRAC_NH4
 0.5    FRAC_NO3
-
-
-
