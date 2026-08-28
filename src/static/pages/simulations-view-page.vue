@@ -4,7 +4,7 @@
       <arcgis-zoom slot="top-left"></arcgis-zoom>
 
       <div class="bg-white p-3 position-absolute shadow" style="top: 1em; right: 1em;" v-if="totalCarbonStock.length">
-        <div>Total Carbon Stock:</div>
+        <div>Average Carbon Stock:</div>
         <strong v-for="(tcs, idx) of totalCarbonStock" :key="idx" class="d-block">
           Simulation {{ simulations[idx].code }}: {{ tcs.toFixed(3) }} Mg C / ha
         </strong>
@@ -75,9 +75,9 @@ const colorVisualVariable = {
   type: "color", // Specifies a color gradient
   field: "carbon_stock", // The data field driving the gradient
   stops: [
-    { value: 0, color: "#FFF7EC", label: "Low (0)" },
-    { value: 100, color: "#FDBB84", label: "Medium (100)" },
-    { value: 1000, color: "#D7301F", label: "High (1,000)" }
+    { value: 0, color: "#D7301F", label: "Low (0)" },
+    // { value: 100, color: "#FDBB84", label: "Medium (100)" },
+    { value: 1000, color: "#FFF7EC", label: "High (1,000)" }
   ]
 };
 
@@ -98,7 +98,7 @@ const featureLayers = simulations.value.map(simulation => new FeatureLayer({
   renderer: gradientRenderer,
   popupEnabled: true,
   definitionExpression: `simulation_id = '${simulation.id}'`,
-  // labelingInfo: [numberLabelClass],
+  labelingInfo: [numberLabelClass],
   timeInfo: {
     startField: 'simulation_date',
     interval: { unit: 'years', value: 1 }
@@ -180,7 +180,7 @@ onMounted(async () => {
         {
           onStatisticField: 'carbon_stock',
           outStatisticFieldName: 'TotalCarbonStock',
-          statisticType: 'sum'
+          statisticType: 'avg'
         }
       ];
       const queryResp = await view.queryFeatures(statsQuery);

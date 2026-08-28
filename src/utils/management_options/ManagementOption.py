@@ -15,12 +15,17 @@ class ManagementOption(ABC):
     end_year: int
     params: dict
     block_number: int = 0
+    type: ExecType
 
-    def __init__(self, start_year: int, end_year: int, params: dict = {}):
+    def __init__(self, type: ExecType, start_year: int, end_year: int, params: dict = {}):
         self.name = self.__class__.__name__
         self.start_year = start_year
         self.end_year = end_year
         self.params = params
+        self.type = type
+
+    def get_type(self) -> ExecType:
+        return self.type
 
     def get_schedule_header(self) -> list[list[int | str]]:
         """

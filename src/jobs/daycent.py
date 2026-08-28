@@ -204,6 +204,7 @@ class DaycentExecutor(Job):
         elif exec_type == "base":
             # TODO Parametrize this.
             management_option = CropRotation(
+                exec_type,
                 self.params["start_year"],
                 self.params["end_year"],
                 {"crop": ["C1", "ALF"], "fert": "UREA", "cult": "K", "harv": "G90S"},
@@ -213,10 +214,11 @@ class DaycentExecutor(Job):
             self.download_attachments(tmpdir, "equilibrium", mapunit_key)
         else:
             # TODO Parametrize this.
-            management_option = Monoculture(
+            management_option = CropRotation(
+                exec_type,
                 self.params["start_year"],
                 self.params["end_year"],
-                {"crop": "C1", "fert": "UREA", "cult": "K", "harv": "G90S"},
+                {"crop": ["C1", "SYBN", "SYBN", "SYBN", "ALF"], "fert": "UREA", "cult": "K", "harv": "G90S"},
             )
 
             # Download base attachments.
@@ -457,21 +459,21 @@ if __name__ == "__main__":
     asyncio.run(
         executor.logic(
             # dict(
-            #     parcel_id=211091,
+            #     parcel_id=211136,
             #     simulation_id=16,
             #     start_year=1,
             #     end_year=5000,
             #     type="equilibrium",
             # )
             # dict(
-            #     parcel_id=211091,
+            #     parcel_id=211136,
             #     simulation_id=16,
             #     start_year=1850,
             #     end_year=2025,
             #     type="base",
             # )
             dict(
-                parcel_id=211091,
+                parcel_id=211136,
                 simulation_id=16,
                 start_year=2026,
                 end_year=2026 + 50,
