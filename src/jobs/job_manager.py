@@ -52,17 +52,44 @@ class JobManager:
 
         self.agol.add_list(
             self.queue_ref,
-            [
-                {
-                    "attributes": {
-                        "JOB_NAME": name,
-                        "JOB_PARAMS": json.dumps(params),
-                        "JOB_CREATE_DATE": Agol_Now(),
-                        "JOB_STATUS": JobStatus.CREATED.value,
-                    }
-                }
-            ],
+            [self._build_job(name, params)],
         )
+
+    def add_jobs(self, jobs: list[dict[str, str | dict]]):
+        """
+        Add a list of jobs into the queue.
+
+        Args:
+            jobs: The list of jobs to add. Each jobs is represented by
+                a dict with the name (key: "name"), as a string, and the
+                parameters (key: "params"), as a dict.
+        """
+
+        jobs_as_features: list[Feature] = []
+        for j in jobs:
+            jobs_as_features.append(self._build_job(j["name"], j["params"]))
+        self.agol.batch_edit(self.queue_ref, jobs_as_features)
+
+    def _build_job(self, name, params):
+        """
+        Build the Feature object for the queue as expected by ArcGIS Online.
+
+        Args:
+            name: The job name.
+            params: The job params.
+
+        Returns:
+            The Feature object built.
+        """
+
+        return {
+            "attributes": {
+                "JOB_NAME": name,
+                "JOB_PARAMS": json.dumps(params),
+                "JOB_CREATE_DATE": Agol_Now(),
+                "JOB_STATUS": JobStatus.CREATED.value,
+            }
+        }
 
     def run_job(self, job: Feature):
         """
@@ -160,7 +187,7 @@ class JobManager:
         """
         Gets the next job for execution by this executor.
         If a job is already claimed, return it, otherwise return
-        the next available job. If there are no jobs available, 
+        the next available job. If there are no jobs available,
         return None.
 
         Returns:

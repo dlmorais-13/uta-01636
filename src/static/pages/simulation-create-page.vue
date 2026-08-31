@@ -270,11 +270,13 @@ async function loadParameters(filters) {
   const parametersToConfig = [{
     type: 'target',
     name: 'Crop',
+    column: 'crop',
     source: crops,
     description: 'Defines the number of parcels cultivating a specific type of crop.',
   }, {
     type: 'target',
     name: 'Irrigation Types',
+    column: 'irr_type',
     source: irrTypes,
     description: 'Defines the number of parcels using a specific irrigation type.',
   }];
@@ -509,6 +511,7 @@ function useTargetParameter() {
     parameters.value.push({
       type: 'target',
       name: `${targetName.charAt(0).toUpperCase() + targetName.slice(1)} Target`,
+      column: dataToAdd.value.parameter.column,
       value: dataToAdd.value.value.option,
       target: dataToAdd.value.value.target / 100
     });
