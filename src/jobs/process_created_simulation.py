@@ -51,6 +51,7 @@ class ProcessCreatedSimulation(Job):
         for p in parcels:
             parcel_params = {
                 "parcel_id": p.attributes["parcel_key"],
+                "type": "simulation",
                 "simulation_id": params["simulation_id"],
                 "start_year": survey_last_year + 1,
                 "end_year": survey_last_year + 50,

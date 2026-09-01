@@ -1,6 +1,7 @@
 import logging
 import os
-from src.settings import settings
+import sys
+import re
 
 
 class RelativeSeconds(logging.Formatter):
@@ -11,17 +12,34 @@ class RelativeSeconds(logging.Formatter):
         return super().format(record)
 
 
+class FileFormatter(RelativeSeconds):
+    # Regex to match ANSI escape sequences
+    _ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+    def format(self, record):
+        original_message = super().format(record)
+        return self._ansi_escape.sub("", original_message)
+
+
+format_str = "%(asctime)s - %(threadName)s - %(relativeCreated)fs - %(levelname)s - %(name)s - %(message)s"
+
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(RelativeSeconds(format_str))
+
 # Configure the logging
-formatter = RelativeSeconds(
-    "%(asctime)s - %(threadName)s - %(relativeCreated)fs - %(levelname)s - %(name)s - %(message)s"
-)
-# logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
-logging.basicConfig(level=logging.INFO)
-logging.root.handlers[0].setFormatter(formatter)
+if "LOG_FILE" in os.environ:
+    file_handler = logging.FileHandler("workdir/app.log", mode="a", encoding="utf-8")
+    file_handler.setFormatter(FileFormatter(format_str))
+
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[stream_handler, file_handler],
+    )
+else:
+    # logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
+    logging.basicConfig(level=logging.INFO, handlers=[stream_handler])
 
 # Limit memory usage
-import os
-
 if "MEM_LIMIT" in os.environ:
     mem_limit_mb = int(os.environ["MEM_LIMIT"])
     mem_limit_bytes = mem_limit_mb * 1024 * 1024

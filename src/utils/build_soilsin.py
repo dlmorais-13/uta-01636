@@ -1,7 +1,10 @@
 import os
+import logging
 from pandas import DataFrame, Series
 
 from src.apis.ssurgo_api import Ssurgo_API
+
+LOGGER = logging.getLogger(__name__)
 
 
 class BuildSoilsin:
@@ -53,6 +56,13 @@ class BuildSoilsin:
         components, chorizons = await self._load_components_and_chorizons(
             mapunit_key, components, chorizons
         )
+
+        chorizon_len_before = len(chorizons)
+        chorizons.dropna(inplace=True)
+        chorizon_len_diff = chorizon_len_before - len(chorizons)
+        if chorizon_len_diff > 0:
+            LOGGER.warning(f'{chorizon_len_diff} chorizon layer(s) were droped because they have NaN values. Components (cokey): {", ".join(str(x) for x in list(components["cokey"]))}')
+
         soilsin_data = self._get_mapunit_soilsin_data(
             mapunit_key, components, chorizons
         )

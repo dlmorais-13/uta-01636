@@ -100,7 +100,7 @@ class JobManager:
             job: Job to be executed.
         """
 
-        [full_class_name] = job.attributes["JOB_NAME"].split(":")
+        full_class_name = job.attributes["JOB_NAME"].split(":")[0]
         LOGGER.info(f"Executing job <{full_class_name}>")
 
         module_name, class_name = full_class_name.rsplit(".", 1)

@@ -17,7 +17,6 @@
 </template>
 
 <script setup>
-import ParcelsMap from '../components/parcels-map.vue';
 import { useRoute } from 'vue-router';
 import { onMounted, ref } from 'vue';
 import LayerMerger from '../utils/layer-merger.mjs';
@@ -77,15 +76,15 @@ const colorVisualVariable = {
   stops: [
     { value: 0, color: "#D7301F", label: "Low (0)" },
     // { value: 100, color: "#FDBB84", label: "Medium (100)" },
-    { value: 1000, color: "#FFF7EC", label: "High (1,000)" }
+    { value: 2000, color: "#FFF7EC", label: "High (1,000)" }
   ]
 };
 
 const gradientRenderer = new SimpleRenderer({
   symbol: {
-    type: "simple-fill", // Use simple-marker for points, simple-line for paths
+    type: "simple-fill",
     style: "solid",
-    outline: { width: 0.5, color: "white" }
+    outline: { width: 1, color: "black" }
   },
   visualVariables: [colorVisualVariable] // Injects the gradient logic
 });

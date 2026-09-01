@@ -34,11 +34,6 @@ class DaycentExecutor(Job):
     Will create a temporary execution folder, copy all necessary static files,
     invoke the creation of the parameter files, execute the Daycent analysis,
     and upload the results into the ArcGIS online layer with simulation results data.
-
-    Examples:
-
-        executor = DaycentExecutor()
-        await executor.execute(parcel_id, simulation_id)
     """
 
     agol_api: AgolAPI
@@ -47,6 +42,7 @@ class DaycentExecutor(Job):
     params: dict
 
     def __init__(self):
+        super().__init__()
         self.agol_api = AgolAPI_Injector()
         self.ssurgo_api = Ssurgo_API()
 
@@ -56,18 +52,16 @@ class DaycentExecutor(Job):
 
         Args:
             parcel_id: ID of the parcel in the base layer. The OBJECTID column.
-            simulation_id: ID of the simulation being processed. The OBJECTID column.
-            simulation_params: The parameters of the simulation being processed.
-                Optional. By default this function will load the parameters from
-                the database.
             type: Type of the execution. One of "equilibrium", "base" or "simulation".
+            simulation_id: ID of the simulation being processed. The OBJECTID column.
+                Optional. Not required for equilibrium and base executions.
         """
 
         LOGGER.info(f"Starting Daycent execution with parameters {params}.")
 
         self.params = params
         parcel_id = self.params["parcel_id"]
-        simulation_id = self.params["simulation_id"]
+        simulation_id = self.params.get("simulation_id", None)
         exec_type: ExecType = self.params["type"]
 
         base_layer_ref = self.agol_api.get_layer_ref(settings.agol_base_layer_id)
@@ -89,7 +83,7 @@ class DaycentExecutor(Job):
             LOGGER.info(f"Starting execution for mapunit {mapunit_key}.")
 
             tmpdir = tempfile.mkdtemp(
-                suffix=f"_{simulation_id}_{parcel_id}_{exec_type}"
+                suffix=f"_{simulation_id or exec_type}_{parcel_id}_{exec_type}"
             )
 
             try:
@@ -455,29 +449,33 @@ class DaycentExecutor(Job):
 if __name__ == "__main__":
     import asyncio
 
+    # TODO Base for parcel 58527 encountered random errors.
+    # It is necessary to do something about it (retries?).
+
     executor = DaycentExecutor()
     asyncio.run(
         executor.logic(
+            # Equilibrium
             # dict(
-            #     parcel_id=211136,
-            #     simulation_id=16,
+            #     parcel_id=66491,
             #     start_year=1,
             #     end_year=5000,
             #     type="equilibrium",
             # )
+            # Base
             # dict(
-            #     parcel_id=211136,
-            #     simulation_id=16,
+            #     parcel_id=66491,
             #     start_year=1850,
             #     end_year=2025,
             #     type="base",
             # )
-            dict(
-                parcel_id=211136,
-                simulation_id=16,
-                start_year=2026,
-                end_year=2026 + 50,
-                type="simulation",
-            )
+            # Simulation
+            # dict(
+            #     parcel_id=211136,
+            #     simulation_id=16,
+            #     start_year=2026,
+            #     end_year=2026 + 50,
+            #     type="simulation",
+            # )
         )
     )
