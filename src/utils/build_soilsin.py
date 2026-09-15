@@ -41,7 +41,7 @@ class BuildSoilsin:
         mapunit_key: int,
         components: DataFrame = None,
         chorizons: DataFrame = None,
-    ):
+    ) -> list[list[float]] | None:
         """
         Builds the soils.in file and return the data used to build it.
 
@@ -51,6 +51,10 @@ class BuildSoilsin:
                 Optional. If not defined will be fetched from SSURGO.
             chorizons: The horizon configuration of the map unit.
                 Optional. If not defined will be fetched from SSURGO.
+
+        Returns:
+            The list of data put into soils.in file, or None if there is
+            no horizons available in SSURGO to create the file.
         """
 
         components, chorizons = await self._load_components_and_chorizons(
@@ -58,10 +62,16 @@ class BuildSoilsin:
         )
 
         chorizon_len_before = len(chorizons)
+
         chorizons.dropna(inplace=True)
         chorizon_len_diff = chorizon_len_before - len(chorizons)
         if chorizon_len_diff > 0:
             LOGGER.warning(f'{chorizon_len_diff} chorizon layer(s) were droped because they have NaN values. Components (cokey): {", ".join(str(x) for x in list(components["cokey"]))}')
+
+        # Some map units don't have horizons defined, those are ignored.
+        if len(chorizons) == 0:
+            LOGGER.warning(f'Mapunit {mapunit_key} without valid horizons in SSURGO.')
+            return None
 
         soilsin_data = self._get_mapunit_soilsin_data(
             mapunit_key, components, chorizons
@@ -145,16 +155,12 @@ class BuildSoilsin:
 
         # Field capacity
         field_capacity = float(horizon["field_capacity"])
-        layer_data.append(
-            field_capacity if field_capacity <= 1 else field_capacity / 100
-        )
+        layer_data.append(field_capacity / 100)
 
         # Wilting point
         # TODO This value cannot be zero. Check what to do in case it's zero in SSURGO.
         wilting_point = float(horizon["wilting_point"])
-        layer_data.append(
-            max(wilting_point if wilting_point <= 1 else wilting_point / 100, 0.01)
-        )
+        layer_data.append(wilting_point / 100)
 
         # Evap Coefficient
         # Not used according to documentation.
@@ -232,7 +238,7 @@ class BuildSoilsin:
 
             # Find the layers within the range being computed.
             range_layers = horizons.loc[
-                horizons["hzdept_r"].lt(range_end) & horizons["hzdepb_r"].ge(curr_depth)
+                horizons["hzdept_r"].lt(range_end) & horizons["hzdepb_r"].gt(curr_depth)
             ]
 
             # Transform each layer into a regular dictionary.
@@ -336,7 +342,7 @@ if __name__ == "__main__":
     import asyncio
 
     build_soilsin = BuildSoilsin("/tmp")
-    mukey = 482665
+    mukey = 506612
 
     cmp, hor = asyncio.run(build_soilsin._load_components_and_chorizons(mukey))
     hor = hor.sort_values(by=["hzdept_r", "hzdepb_r"])

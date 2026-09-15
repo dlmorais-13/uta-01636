@@ -23,6 +23,7 @@ from src.utils.management_options.CropRotation import CropRotation
 from src.utils.management_options.Monoculture import Monoculture
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.apis.ssurgo_api import Ssurgo_API
+from src.models.parcel_repository import ParcelRepository
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,11 +41,13 @@ class DaycentExecutor(Job):
     ssurgo_api: Ssurgo_API
     parcel: Feature
     params: dict
+    parcel_repository: ParcelRepository
 
     def __init__(self):
         super().__init__()
         self.agol_api = AgolAPI_Injector()
         self.ssurgo_api = Ssurgo_API()
+        self.parcel_repository = ParcelRepository()
 
     async def logic(self, params: dict):
         """
@@ -89,7 +92,7 @@ class DaycentExecutor(Job):
             try:
                 LOGGER.info(f"Created temporary directory {tmpdir}")
 
-                await self.prepare_input_files(
+                input_files_prepared = await self.prepare_input_files(
                     tmpdir=tmpdir,
                     mapunit_key=mapunit_key,
                     site_elevation=site_elevation,
@@ -97,30 +100,38 @@ class DaycentExecutor(Job):
                     exec_type=exec_type,
                 )
 
-                self.execute_daycent(tmpdir, mapunit_key)
+                if input_files_prepared:
+                    self.execute_daycent(tmpdir, mapunit_key)
 
-                if exec_type == "simulation":
-                    results_per_unit[mapunit_key] = self.read_results(
-                        tmpdir, vars=["somtc", "totalc", "totsysc"]
+                    if exec_type == "simulation":
+                        results_per_unit[mapunit_key] = self.read_results(
+                            tmpdir, vars=["somtc", "totalc", "totsysc"]
+                        )
+                    else:
+                        ext_file_name = f"{exec_type}_{mapunit_key}.100"
+                        txt_file_name = f"{ext_file_name}.txt"
+                        shutil.copyfile(
+                            os.path.join(tmpdir, ext_file_name),
+                            os.path.join(tmpdir, txt_file_name),
+                        )
+
+                        self.parcel_repository.upload_attachment(
+                            parcel=self.parcel,
+                            file_path=os.path.join(tmpdir, txt_file_name),
+                            keywords=f"{exec_type}:{mapunit_key}",
+                        )
+
+                    LOGGER.info(
+                        f"Finished Daycent execution for simulation {simulation_id}, parcel {parcel_id}, and map unit {mapunit_key}."
                     )
+
                 else:
-                    ext_file_name = f"{exec_type}_{mapunit_key}.100"
-                    txt_file_name = f"{ext_file_name}.txt"
-                    shutil.copyfile(
-                        os.path.join(tmpdir, ext_file_name),
-                        os.path.join(tmpdir, txt_file_name),
+                    LOGGER.info(
+                        f"Daycent not executed for simulation {simulation_id}, parcel {parcel_id}, and map unit {mapunit_key}. Not enough data to prepare input files."
                     )
-                    # TODO Delete old attachments before adding new.
-                    self.agol_api.add_attachment(
-                        layerIdOrRef=base_layer_ref,
-                        objectid=self.parcel.attributes["OBJECTID"],
-                        file_path=os.path.join(tmpdir, txt_file_name),
-                        keywords=f"{exec_type}:{mapunit_key}",
+                    self.parcel_repository.mark_map_unit_as_unusable(
+                        parcel=self.parcel, map_unit_id=mapunit_key
                     )
-
-                LOGGER.info(
-                    f"Finished Daycent execution for simulation {simulation_id}, parcel {parcel_id}, and map unit {mapunit_key}."
-                )
             except Exception as e:
                 msg = f"Error in Daycent execution for simulation {simulation_id}, parcel {parcel_id}, and map unit {mapunit_key}"
                 LOGGER.exception(msg)
@@ -152,6 +163,10 @@ class DaycentExecutor(Job):
             wth_file_path: The path for the file created with weather data.
             mapunit_key: The ID of the SSURGO map unit being processed.
             site_elevation: The elevation in the middle point of the parcel.
+
+        Returns:
+            True if there is enough data to prepare the minimum required
+            input files, False otherwise.
         """
 
         # Copy files that do not vary between executions.
@@ -169,6 +184,9 @@ class DaycentExecutor(Job):
         soil_layer_data = await BuildSoilsin(tmpdir).build(
             mapunit_key, components=components
         )
+
+        if soil_layer_data is None:
+            return False
 
         await BuildSiteFile(
             dest_dir=tmpdir,
@@ -212,7 +230,12 @@ class DaycentExecutor(Job):
                 exec_type,
                 self.params["start_year"],
                 self.params["end_year"],
-                {"crop": ["C1", "SYBN", "SYBN", "SYBN", "ALF"], "fert": "UREA", "cult": "K", "harv": "G90S"},
+                {
+                    "crop": ["C1", "SYBN", "SYBN", "SYBN", "ALF"],
+                    "fert": "UREA",
+                    "cult": "K",
+                    "harv": "G90S",
+                },
             )
 
             # Download base attachments.
@@ -224,6 +247,8 @@ class DaycentExecutor(Job):
             end_year=self.params["end_year"],
             management=management_option,
         ).build()
+
+        return True
 
     def get_parcel_mapunits(self) -> dict:
         """
@@ -433,9 +458,16 @@ class DaycentExecutor(Job):
         results = defaultdict(lambda: defaultdict(float))
         parcel_mapunits = self.get_parcel_mapunits()
 
-        total_area = sum([float(mapunit["area"]) for mapunit in parcel_mapunits])
+        # Disconsider any mapunit without computed data.
+        mapunits_with_data = [
+            mapunit
+            for mapunit in parcel_mapunits
+            if int(mapunit["id"]) in results_per_mapunit
+        ]
 
-        for mapunit in parcel_mapunits:
+        total_area = sum([float(mapunit["area"]) for mapunit in mapunits_with_data])
+
+        for mapunit in mapunits_with_data:
             mapunit_results = results_per_mapunit[int(mapunit["id"])]
             for var in mapunit_results:
                 for year in mapunit_results[var]:
@@ -452,30 +484,57 @@ if __name__ == "__main__":
     # TODO Base for parcel 58527 encountered random errors.
     # It is necessary to do something about it (retries?).
 
-    executor = DaycentExecutor()
-    asyncio.run(
-        executor.logic(
-            # Equilibrium
-            # dict(
-            #     parcel_id=66491,
-            #     start_year=1,
-            #     end_year=5000,
-            #     type="equilibrium",
-            # )
-            # Base
-            # dict(
-            #     parcel_id=66491,
-            #     start_year=1850,
-            #     end_year=2025,
-            #     type="base",
-            # )
-            # Simulation
-            # dict(
-            #     parcel_id=211136,
-            #     simulation_id=16,
-            #     start_year=2026,
-            #     end_year=2026 + 50,
-            #     type="simulation",
-            # )
+    agol_api = AgolAPI_Injector()
+    base_layer = agol_api.get_layer_ref(settings.agol_base_layer_id)
+
+    while True:
+        parcels_without_equilibrium = base_layer.query(
+            where=f'equilibrium_calculated = 0',
+            out_fields=["OBJECTID", "parcel_key"],
+            return_geometry=False,
+            result_record_count=1
         )
-    )
+
+        if not len(parcels_without_equilibrium):
+            break
+
+        for pwa in parcels_without_equilibrium:
+            executor = DaycentExecutor()
+            asyncio.run(
+                executor.logic(
+                    dict(
+                        parcel_id=pwa.attributes["parcel_key"],
+                        start_year=1,
+                        end_year=5000,
+                        type="equilibrium",
+                    )
+                )
+            )
+
+    # executor = DaycentExecutor()
+    # asyncio.run(
+    #     executor.logic(
+    #         # Equilibrium
+    #         dict(
+    #             parcel_id=181,
+    #             start_year=1,
+    #             end_year=5000,
+    #             type="equilibrium",
+    #         )
+    #         # Base
+    #         # dict(
+    #         #     parcel_id=66491,
+    #         #     start_year=1850,
+    #         #     end_year=2025,
+    #         #     type="base",
+    #         # )
+    #         # Simulation
+    #         # dict(
+    #         #     parcel_id=211136,
+    #         #     simulation_id=16,
+    #         #     start_year=2026,
+    #         #     end_year=2026 + 50,
+    #         #     type="simulation",
+    #         # )
+    #     )
+    # )

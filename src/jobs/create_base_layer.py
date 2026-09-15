@@ -448,11 +448,11 @@ class CreateBaseLayer(Job):
             None,
         )
 
-        # basin_subarea_column_name = next((
-        #     col_spec.split(":")[0]
-        #     for col_spec in most_recent_columns
-        #     if col_spec.split(":")[1] == "basin_subarea"
-        # ), None)
+        basin_subarea_column_name = next((
+            col_spec.split(":")[0]
+            for col_spec in most_recent_columns
+            if col_spec.split(":")[1] == "basin_subarea"
+        ), None)
 
         layer_projected = parcels.to_crs(epsg=4326)
 
@@ -472,8 +472,10 @@ class CreateBaseLayer(Job):
                 "county": county_name,
                 "basin": feature_attrs[basin_column_name],
                 # TODO Reprocess with subarea being imported.
-                # "basin_subarea": feature_attrs[basin_subarea_column_name],
+                "basin_subarea": feature_attrs[basin_subarea_column_name],
                 "map_unit_data": feature_attrs["map_unit_data"],
+                "equilibrium_calculated": 0,
+                "base_calculated": 0
             }
 
             geom = Polygon(
@@ -673,7 +675,7 @@ if __name__ == "__main__":
             {
                 "batch_size": 1000,
                 "delete_data": False,
-                "delete_county_json": True,
+                "delete_county_json": False,
                 "delete_soils_json": False,
                 # 'parcel_id': 10239
             }

@@ -24,7 +24,8 @@
             "module": "${command:extension.commandvariable.file.relativeDirDots}.${fileBasenameNoExtension}",
             "cwd": "${workspaceFolder}",
             "env": {
-                "DEBUG": "True"
+                "DEBUG": "True",
+                "LOG_FILE": "True"
             },
             "justMyCode": false,
             "autoReload": {

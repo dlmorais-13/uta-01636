@@ -394,6 +394,16 @@ class AgolAPI:
             if not isinstance(layerIdOrRef, str)
             else self.get_layer_ref(layerIdOrRef)
         )
+
+        current_attachments = self.get_attachments(ref, objectid)
+        same_attachment = [a for a in current_attachments if a["keywords"] == keywords]
+
+        # If there are other attachments with the same keyword. Delete before
+        # adding the new one.
+        if len(same_attachment) > 0:
+            for a in same_attachment:
+                ref.attachments.delete(objectid, a['id'])
+
         add_result = ref.attachments.add(
             oid=objectid, file_path=file_path, keywords=keywords
         )
