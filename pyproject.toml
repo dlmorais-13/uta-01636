@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Agricultural Ecosystem Services: Exploring Models and Methods for Scenario Development Along the Wasatch Front, Utah"
 authors = ["Daniel Lemos de Morais <daniel.lemos@usu.edu>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"

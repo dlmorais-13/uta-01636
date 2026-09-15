@@ -1,10 +1,13 @@
 FROM python:3.10-slim
 
+RUN pip install poetry
+
 WORKDIR /code
 
-COPY ./pip-packages.txt /code/pip-packages.txt
+COPY ./pyproject.toml /code/
+COPY ./poetry.lock /code/
 
-RUN pip install --no-cache-dir --upgrade -r /code/pip-packages.txt
+RUN poetry install
 
 COPY ./src /code/src
 COPY ./daycent /daycent
