@@ -398,7 +398,7 @@ class AgolAPI:
         current_attachments = self.get_attachments(ref, objectid)
         same_attachment = [a for a in current_attachments if a["keywords"] == keywords]
 
-        # If there are other attachments with the same keyword. Delete before
+        # If there are other attachments with the same keyword,  delete them before.
         # adding the new one.
         if len(same_attachment) > 0:
             for a in same_attachment:
