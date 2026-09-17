@@ -492,16 +492,24 @@ if __name__ == "__main__":
     while True:
         try:
             query_res = base_layer.query(
-                where=f'equilibrium_calculated = 0',
-                out_fields=["OBJECTID", "parcel_key"],
+                where=f"equilibrium_calculated = 0",
+                out_fields=["OBJECTID", "parcel_key", "map_unit_data"],
                 return_geometry=False,
-                result_record_count=1
+                result_record_count=1,
             )
 
             if not len(query_res):
                 break
 
             parcel = query_res.features[0]
+
+            map_units = json.loads(parcel.attributes["map_unit_data"])
+            for mu in map_units:
+                if len([mu2 for mu2 in map_units if mu["id"] == mu2["id"]]) > 1:
+                    raise Exception(
+                        f'Wrong mapunit data for parcel key={parcel.attributes["parcel_key"]}'
+                    )
+
             executor = DaycentExecutor()
             asyncio.run(
                 executor.logic(
@@ -514,10 +522,10 @@ if __name__ == "__main__":
                 )
             )
         except Exception as e:
-            parcel_repository.mark_parcel_as_precalc_error(parcel, 'equilibrium')
+            parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")
             LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
             traceback.print_exc()
-            # raise e
+            raise e
 
     # executor = DaycentExecutor()
     # asyncio.run(
