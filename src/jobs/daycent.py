@@ -480,36 +480,44 @@ class DaycentExecutor(Job):
 
 if __name__ == "__main__":
     import asyncio
+    import traceback
 
     # TODO Base for parcel 58527 encountered random errors.
     # It is necessary to do something about it (retries?).
 
     agol_api = AgolAPI_Injector()
     base_layer = agol_api.get_layer_ref(settings.agol_base_layer_id)
+    parcel_repository = ParcelRepository()
 
     while True:
-        parcels_without_equilibrium = base_layer.query(
-            where=f'equilibrium_calculated = 0',
-            out_fields=["OBJECTID", "parcel_key"],
-            return_geometry=False,
-            result_record_count=1
-        )
+        try:
+            query_res = base_layer.query(
+                where=f'equilibrium_calculated = 0',
+                out_fields=["OBJECTID", "parcel_key"],
+                return_geometry=False,
+                result_record_count=1
+            )
 
-        if not len(parcels_without_equilibrium):
-            break
+            if not len(query_res):
+                break
 
-        for pwa in parcels_without_equilibrium:
+            parcel = query_res.features[0]
             executor = DaycentExecutor()
             asyncio.run(
                 executor.logic(
                     dict(
-                        parcel_id=pwa.attributes["parcel_key"],
+                        parcel_id=parcel.attributes["parcel_key"],
                         start_year=1,
                         end_year=5000,
                         type="equilibrium",
                     )
                 )
             )
+        except Exception as e:
+            parcel_repository.mark_parcel_as_precalc_error(parcel, 'equilibrium')
+            LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
+            traceback.print_exc()
+            # raise e
 
     # executor = DaycentExecutor()
     # asyncio.run(

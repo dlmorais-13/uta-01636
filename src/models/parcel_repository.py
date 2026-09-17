@@ -1,6 +1,7 @@
 from arcgis.features import FeatureLayer, Feature
 import logging
 import json
+from typing import Literal
 
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.settings import settings
@@ -39,6 +40,19 @@ class ParcelRepository:
         )
         LOGGER.info(f"Found {len(parcels.features)} parcels.")
         return parcels.features
+
+    def mark_parcel_as_precalc_error(self, parcel: Feature, precalc: Literal['equilibrium', 'base']):
+        """
+        Marks a parcel with a flag to indicate an error when calculating either
+        equilibrium or base DayCent pre-calculations.
+
+        Args:
+            parcel: The parcel to be marked.
+            precalc: The type of the pre-calculation that had error.
+        """
+
+        parcel.attributes[f'{precalc}_calculated'] = 2
+        self.api.update(layerIdOrRef=self.base_layer_ref, feature=parcel)
 
     def mark_map_unit_as_unusable(self, parcel: Feature, map_unit_id: int):
         """
