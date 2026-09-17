@@ -525,7 +525,7 @@ if __name__ == "__main__":
             parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")
             LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
             traceback.print_exc()
-            raise e
+            # raise e
 
     # executor = DaycentExecutor()
     # asyncio.run(
