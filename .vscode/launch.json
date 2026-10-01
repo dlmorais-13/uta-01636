@@ -25,7 +25,10 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "DEBUG": "True",
-                "LOG_FILE": "True"
+                "LOG_FILE": "True",
+                "EXECUTOR_MOD": "3",
+                "EXECUTOR_QTY": "10",
+                "EXECUTOR_LIMIT": "1"
             },
             "justMyCode": false,
             "autoReload": {

@@ -41,6 +41,17 @@ class ParcelRepository:
         LOGGER.info(f"Found {len(parcels.features)} parcels.")
         return parcels.features
 
+    def update_mapunits(self, parcel: Feature, mapunits: list[dict]):
+        """
+        Updates the map units in a parcel to a new list of map units.
+
+        Args:
+            parcel: Parcel to be updated.
+            mapunits: The list of map units to set for the parcel.
+        """
+        parcel.attributes['map_unit_data'] = json.dumps(mapunits)
+        self.api.update(self.base_layer_ref, parcel)
+
     def mark_parcel_as_precalc_error(self, parcel: Feature, precalc: Literal['equilibrium', 'base']):
         """
         Marks a parcel with a flag to indicate an error when calculating either

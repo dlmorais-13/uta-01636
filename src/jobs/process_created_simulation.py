@@ -24,6 +24,10 @@ class ProcessCreatedSimulation(Job):
     simulation: dict
     parcels_changes: dict[str, list] = {}
 
+    def __init__(self):
+        super().__init__()
+        self.api = AgolAPI_Injector()
+
     async def logic(self, params: dict):
         """
         Executes the job.
@@ -36,7 +40,6 @@ class ProcessCreatedSimulation(Job):
         LOGGER.info(
             f'Executing job ProcessCreatedSimulation for simulation #{params["simulation_id"]}'
         )
-        self.api = AgolAPI_Injector()
         self.simulation = SimulationRepository().get_simulation(params["simulation_id"])
         parcels = ParcelRepository().get_parcels(
             self._build_where_clause_from_filters(self.simulation["filters"])
@@ -216,7 +219,7 @@ class ProcessCreatedSimulation(Job):
             "value": new_value,
         }
 
-    def _build_where_clause_from_filters(self, filters) -> str:
+    def _build_where_clause_from_filters(self, filters: list[dict]) -> str:
         """
         Builds a where clause to be used when searching the base layer, according to the
         provided filters.

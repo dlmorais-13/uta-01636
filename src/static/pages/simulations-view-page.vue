@@ -33,10 +33,6 @@ const serviceId = await serviceIdResp.json();
 
 const [
   FeatureLayer,
-  Map,
-  MapView,
-  CustomContent,
-  centroidOperator,
   SimpleRenderer,
   reactiveUtils
 ] = await $arcgis.import([
@@ -50,29 +46,26 @@ const [
 ]);
 
 const numberLabelClass = {
-  // Autocasts as a new LabelClass.
   symbol: {
-    type: "text", // Autocasts as a new TextSymbol.
+    type: "text",
     color: "white",
     haloColor: "black",
-    haloSize: "2px",
+    haloSize: "1px",
     font: {
       size: 12,
-      family: "sans-serif",
+      family: "Josefin Slab",
       weight: "bold"
     }
   },
-  // Use "center-center" for points or "always-horizontal" for polygons.
   labelPlacement: "center-center",
-  // Use Arcade to pull the numeric attribute field from data.
   labelExpressionInfo: {
-    expression: "Concatenate(Round($feature.carbon_stock, 3), ' Mg C / ha')"
+    expression: "Text($feature.carbon_stock, '#,###')"
   }
 };
 
 const colorVisualVariable = {
-  type: "color", // Specifies a color gradient
-  field: "carbon_stock", // The data field driving the gradient
+  type: "color",
+  field: "carbon_stock",
   stops: [
     { value: 0, color: "#D7301F", label: "Low (0)" },
     // { value: 100, color: "#FDBB84", label: "Medium (100)" },
@@ -86,14 +79,14 @@ const gradientRenderer = new SimpleRenderer({
     style: "solid",
     outline: { width: 1, color: "black" }
   },
-  visualVariables: [colorVisualVariable] // Injects the gradient logic
+  visualVariables: [colorVisualVariable]
 });
 
 const featureLayers = simulations.value.map(simulation => new FeatureLayer({
   portalItem: { id: serviceId },
   outFields: ["*"],
-  // minScale: 500000,
-  // maxScale: 1000,
+  minScale: 1000000,
+  maxScale: 1000,
   renderer: gradientRenderer,
   popupEnabled: true,
   definitionExpression: `simulation_id = '${simulation.id}'`,
@@ -101,6 +94,38 @@ const featureLayers = simulations.value.map(simulation => new FeatureLayer({
   timeInfo: {
     startField: 'simulation_date',
     interval: { unit: 'years', value: 1 }
+  },
+
+  featureReduction: {
+    type: "cluster",
+    clusterMinSize: 24,
+    maxScale: 10000,
+    fields: [
+      {
+        name: "carbon_stock",
+        onStatisticField: "carbon_stock",
+        statisticType: "avg"
+      }
+    ],
+    renderer: {
+      type: "simple",
+      symbol: {
+        type: "simple-marker",
+        color: [0, 122, 255, 0.8],
+        size: "24px",
+        outline: {
+          color: "white",
+          width: 1.5
+        }
+      },
+      visualVariables: [colorVisualVariable]
+    },
+    labelingInfo: [
+      {
+        deconflictionStrategy: "none",
+        ...numberLabelClass
+      },
+    ],
   }
 }));
 
@@ -147,7 +172,7 @@ onMounted(async () => {
   await viewElement.viewOnReady();
 
   // Use the map property to add the layers.
-  viewElement.map.addMany(featureLayers); 
+  viewElement.map.addMany(featureLayers);
   // Wait for the layers to be usable.
   const views = await Promise.all(featureLayers.map(fl => viewElement.whenLayerView(fl)))
 

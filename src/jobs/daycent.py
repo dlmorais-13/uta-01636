@@ -79,6 +79,14 @@ class DaycentExecutor(Job):
         parcel_mapunits = self.get_parcel_mapunits()
         LOGGER.info(f"Parcel {parcel_id} map units: {parcel_mapunits}")
 
+        mapunit_ids = [mu["id"] for mu in parcel_mapunits]
+        if len(mapunit_ids) != len(set(mapunit_ids)):
+            LOGGER.info(f"Found duplicated map units. Merging...")
+            parcel_mapunits = self.merge_mapunits(parcel_mapunits)
+            self.parcel_repository.update_mapunits(self.parcel, parcel_mapunits)
+            LOGGER.info(f"Parcel {parcel_id} new map units: {parcel_mapunits}")
+            return
+
         results_per_unit = dict()
 
         for mapunit in parcel_mapunits:
@@ -145,6 +153,25 @@ class DaycentExecutor(Job):
         if exec_type == "simulation":
             results = self.aggregate_results(results_per_unit)
             self.upload_results(simulation_id=simulation_id, results=dict(results))
+
+    def merge_mapunits(self, parcel_mapunits: list[dict]) -> list[dict]:
+        """
+        Merge the map units in the list by their ID, summing the area as necessary.
+
+        Args:
+            parcel_mapunits: The list of map units to merge.
+
+        Returns:
+            The merged list of map units.
+        """
+        result = []
+        for mu in parcel_mapunits:
+            rmu = next((rmu for rmu in result if rmu["id"] == mu["id"]), None)
+            if rmu is None:
+                result.append(mu)
+            else:
+                rmu["area"] += mu["area"]
+        return result
 
     async def prepare_input_files(
         self,
@@ -478,79 +505,113 @@ class DaycentExecutor(Job):
         return results
 
 
+# Execution of equilibrium calculation of all parcels.
 if __name__ == "__main__":
     import asyncio
     import traceback
 
+    execution = "all"
+    # execution = 'equilibrium'
+    # execution = 'base'
+    # execution = 'simulation
+
     # TODO Base for parcel 58527 encountered random errors.
     # It is necessary to do something about it (retries?).
 
-    agol_api = AgolAPI_Injector()
-    base_layer = agol_api.get_layer_ref(settings.agol_base_layer_id)
-    parcel_repository = ParcelRepository()
+    if execution == "all":
+        agol_api = AgolAPI_Injector()
+        base_layer = agol_api.get_layer_ref(settings.agol_base_layer_id)
+        parcel_repository = ParcelRepository()
+        executor_mod = int(os.environ["EXECUTOR_MOD"])
+        executor_qty = int(os.environ["EXECUTOR_QTY"])
+        executor_limit = (
+            int(os.environ["EXECUTOR_LIMIT"])
+            if "EXECUTOR_LIMIT" in os.environ
+            else None
+        )
 
-    while True:
-        try:
-            query_res = base_layer.query(
-                where=f"equilibrium_calculated = 0",
-                out_fields=["OBJECTID", "parcel_key", "map_unit_data"],
-                return_geometry=False,
-                result_record_count=1,
-            )
+        count = 0
+        while True:
+            try:
+                query_res = base_layer.query(
+                    where=f"""
+                        equilibrium_calculated = 0
+                        AND MOD(parcel_key, {executor_qty}) = {executor_mod}
+                    """,
+                    out_fields=["OBJECTID", "parcel_key", "map_unit_data"],
+                    return_geometry=False,
+                    result_record_count=1,
+                )
 
-            if not len(query_res):
-                break
+                if not len(query_res):
+                    break
 
-            parcel = query_res.features[0]
+                parcel = query_res.features[0]
 
-            map_units = json.loads(parcel.attributes["map_unit_data"])
-            for mu in map_units:
-                if len([mu2 for mu2 in map_units if mu["id"] == mu2["id"]]) > 1:
-                    raise Exception(
-                        f'Wrong mapunit data for parcel key={parcel.attributes["parcel_key"]}'
-                    )
+                map_units = json.loads(parcel.attributes["map_unit_data"])
+                for mu in map_units:
+                    if len([mu2 for mu2 in map_units if mu["id"] == mu2["id"]]) > 1:
+                        raise Exception(
+                            f'Wrong mapunit data for parcel key={parcel.attributes["parcel_key"]}'
+                        )
 
-            executor = DaycentExecutor()
-            asyncio.run(
-                executor.logic(
-                    dict(
-                        parcel_id=parcel.attributes["parcel_key"],
-                        start_year=1,
-                        end_year=5000,
-                        type="equilibrium",
+                executor = DaycentExecutor()
+                asyncio.run(
+                    executor.logic(
+                        dict(
+                            parcel_id=parcel.attributes["parcel_key"],
+                            start_year=1,
+                            end_year=5000,
+                            type="equilibrium",
+                        )
                     )
                 )
-            )
-        except Exception as e:
-            parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")
-            LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
-            traceback.print_exc()
-            # raise e
 
-    # executor = DaycentExecutor()
-    # asyncio.run(
-    #     executor.logic(
-    #         # Equilibrium
-    #         dict(
-    #             parcel_id=181,
-    #             start_year=1,
-    #             end_year=5000,
-    #             type="equilibrium",
-    #         )
-    #         # Base
-    #         # dict(
-    #         #     parcel_id=66491,
-    #         #     start_year=1850,
-    #         #     end_year=2025,
-    #         #     type="base",
-    #         # )
-    #         # Simulation
-    #         # dict(
-    #         #     parcel_id=211136,
-    #         #     simulation_id=16,
-    #         #     start_year=2026,
-    #         #     end_year=2026 + 50,
-    #         #     type="simulation",
-    #         # )
-    #     )
-    # )
+            except Exception as e:
+                parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")
+                LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
+                traceback.print_exc()
+
+            count += 1
+            if executor_limit is not None and count >= executor_limit:
+                break
+
+    elif execution == "equilibrium":
+        executor = DaycentExecutor()
+        asyncio.run(
+            executor.logic(
+                dict(
+                    parcel_id=23870,
+                    start_year=1,
+                    end_year=5000,
+                    type="equilibrium",
+                )
+            )
+        )
+
+    elif execution == "base":
+        executor = DaycentExecutor()
+        asyncio.run(
+            executor.logic(
+                dict(
+                    parcel_id=66491,
+                    start_year=1850,
+                    end_year=2025,
+                    type="base",
+                )
+            )
+        )
+
+    elif execution == "simulation":
+        executor = DaycentExecutor()
+        asyncio.run(
+            executor.logic(
+                dict(
+                    parcel_id=211136,
+                    simulation_id=16,
+                    start_year=2026,
+                    end_year=2026 + 50,
+                    type="simulation",
+                )
+            )
+        )
