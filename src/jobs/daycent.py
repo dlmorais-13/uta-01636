@@ -548,13 +548,6 @@ if __name__ == "__main__":
 
                 parcel = query_res.features[0]
 
-                map_units = json.loads(parcel.attributes["map_unit_data"])
-                for mu in map_units:
-                    if len([mu2 for mu2 in map_units if mu["id"] == mu2["id"]]) > 1:
-                        raise Exception(
-                            f'Wrong mapunit data for parcel key={parcel.attributes["parcel_key"]}'
-                        )
-
                 executor = DaycentExecutor()
                 asyncio.run(
                     executor.logic(
