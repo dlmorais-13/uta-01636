@@ -83,7 +83,7 @@ class BuildSoilsin:
                 f.write(
                     "".join(
                         [
-                            f"{l:<6.3f}" if isinstance(l, float) else f"{l:<6}"
+                            f"{l:<12.9f}" if isinstance(l, float) else f"{l:<6}"
                             for l in layer[1:]
                         ]
                     )
@@ -169,7 +169,7 @@ class BuildSoilsin:
         # Frac. Roots
         # Cannot be defined as zero.
         # TODO Check value to use.
-        layer_data.append(0.001)
+        layer_data.append(0.000000001)
 
         # Sand Fraction
         layer_data.append(float(horizon["sand"]) / 100)
@@ -189,8 +189,8 @@ class BuildSoilsin:
         # pH
         layer_data.append(float(horizon["ph"]))
 
-        # Round every float to 3 decimal places.
-        layer_data[:] = [round(v, 3) for v in layer_data]
+        # Round every float to 9 decimal places.
+        layer_data[:] = [round(v, 9) for v in layer_data]
         return layer_data
 
     def _combine_horizons(self, horizons: DataFrame, components: DataFrame):
@@ -342,7 +342,8 @@ if __name__ == "__main__":
     import asyncio
 
     build_soilsin = BuildSoilsin("/tmp")
-    mukey = 506612
+    mukey = 1545658
+    # mukey = 481453
 
     cmp, hor = asyncio.run(build_soilsin._load_components_and_chorizons(mukey))
     hor = hor.sort_values(by=["hzdept_r", "hzdepb_r"])

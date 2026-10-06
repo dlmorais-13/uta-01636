@@ -561,9 +561,13 @@ if __name__ == "__main__":
                 )
 
             except Exception as e:
-                parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")
                 LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
                 traceback.print_exc()
+                try:
+                    parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")
+                except Exception as e2:
+                    LOGGER.error(f'Error trying to set parcel {parcel.attributes["parcel_key"]} as error.')
+                    traceback.print_exc()
 
             count += 1
             if executor_limit is not None and count >= executor_limit:
@@ -574,7 +578,7 @@ if __name__ == "__main__":
         asyncio.run(
             executor.logic(
                 dict(
-                    parcel_id=23870,
+                    parcel_id=7999,
                     start_year=1,
                     end_year=5000,
                     type="equilibrium",
