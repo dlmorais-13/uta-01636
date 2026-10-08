@@ -1,6 +1,6 @@
 import os
 import logging
-from pandas import DataFrame, Series
+from pandas import DataFrame
 
 from src.apis.ssurgo_api import Ssurgo_API
 

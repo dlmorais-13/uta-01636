@@ -28,7 +28,12 @@
                 "LOG_FILE": "True",
                 "EXECUTOR_MOD": "3",
                 "EXECUTOR_QTY": "10",
-                "EXECUTOR_LIMIT": "1"
+                "EXECUTOR_LIMIT": "1",
+                "EXECUTOR_MODE": "reprocess"
+                // "EXECUTOR_MODE": "all"
+                // "EXECUTOR_MODE": "equilibrium"
+                // "EXECUTOR_MODE": "base"
+                // "EXECUTOR_MODE": "simulation"
             },
             "justMyCode": false,
             "autoReload": {

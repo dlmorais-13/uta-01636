@@ -52,7 +52,7 @@ class ParcelRepository:
         parcel.attributes['map_unit_data'] = json.dumps(mapunits)
         self.api.update(self.base_layer_ref, parcel)
 
-    def mark_parcel_as_precalc_error(self, parcel: Feature, precalc: Literal['equilibrium', 'base']):
+    def mark_parcel_as_precalc_error(self, parcel: Feature, precalc: Literal['equilibrium', 'base'], marker: int = 2):
         """
         Marks a parcel with a flag to indicate an error when calculating either
         equilibrium or base DayCent pre-calculations.
@@ -60,9 +60,10 @@ class ParcelRepository:
         Args:
             parcel: The parcel to be marked.
             precalc: The type of the pre-calculation that had error.
+            marker: Marker to use. Default to 2.
         """
 
-        parcel.attributes[f'{precalc}_calculated'] = 2
+        parcel.attributes[f'{precalc}_calculated'] = marker
         self.api.update(layerIdOrRef=self.base_layer_ref, feature=parcel)
 
     def mark_map_unit_as_unusable(self, parcel: Feature, map_unit_id: int):

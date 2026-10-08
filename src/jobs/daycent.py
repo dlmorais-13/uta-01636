@@ -5,6 +5,7 @@ import logging
 import json
 from collections import defaultdict
 from arcgis.features import Feature
+from soildb import SDAQueryError
 
 from src.jobs.job import Job
 from src.settings import settings
@@ -85,10 +86,8 @@ class DaycentExecutor(Job):
             parcel_mapunits = self.merge_mapunits(parcel_mapunits)
             self.parcel_repository.update_mapunits(self.parcel, parcel_mapunits)
             LOGGER.info(f"Parcel {parcel_id} new map units: {parcel_mapunits}")
-            return
 
         results_per_unit = dict()
-
         for mapunit in parcel_mapunits:
             mapunit_key = int(mapunit["id"])
             LOGGER.info(f"Starting execution for mapunit {mapunit_key}.")
@@ -140,6 +139,10 @@ class DaycentExecutor(Job):
                     self.parcel_repository.mark_map_unit_as_unusable(
                         parcel=self.parcel, map_unit_id=mapunit_key
                     )
+            except SDAQueryError as e:
+                msg = f"Error in Daycent execution for simulation {simulation_id}, parcel {parcel_id}, and map unit {mapunit_key}: Probably network error"
+                LOGGER.exception(msg)
+                raise DaycentExecutionNetworkError(msg) from e
             except Exception as e:
                 msg = f"Error in Daycent execution for simulation {simulation_id}, parcel {parcel_id}, and map unit {mapunit_key}"
                 LOGGER.exception(msg)
@@ -148,7 +151,7 @@ class DaycentExecutor(Job):
                 if not settings.debug:
                     shutil.rmtree(tmpdir)
                 else:
-                    LOGGER.info(f"Not removing direction: {tmpdir}")
+                    LOGGER.info(f"Not removing directory: {tmpdir}")
 
         if exec_type == "simulation":
             results = self.aggregate_results(results_per_unit)
@@ -505,15 +508,18 @@ class DaycentExecutor(Job):
         return results
 
 
+class DaycentExecutionNetworkError(Exception):
+    """Raised when a network error is identified during the execution."""
+
+    pass
+
+
 # Execution of equilibrium calculation of all parcels.
 if __name__ == "__main__":
     import asyncio
     import traceback
 
-    execution = "all"
-    # execution = 'equilibrium'
-    # execution = 'base'
-    # execution = 'simulation
+    execution = os.environ["EXECUTOR_MODE"] if "EXECUTOR_MODE" in os.environ else "all"
 
     # TODO Base for parcel 58527 encountered random errors.
     # It is necessary to do something about it (retries?).
@@ -564,21 +570,76 @@ if __name__ == "__main__":
                 LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
                 traceback.print_exc()
                 try:
-                    parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")
+                    parcel_repository.mark_parcel_as_precalc_error(
+                        parcel, "equilibrium"
+                    )
                 except Exception as e2:
-                    LOGGER.error(f'Error trying to set parcel {parcel.attributes["parcel_key"]} as error.')
+                    LOGGER.error(
+                        f'Error trying to set parcel {parcel.attributes["parcel_key"]} as error.'
+                    )
                     traceback.print_exc()
 
             count += 1
             if executor_limit is not None and count >= executor_limit:
                 break
 
+    elif execution == "reprocess":
+        agol_api = AgolAPI_Injector()
+        base_layer = agol_api.get_layer_ref(settings.agol_base_layer_id)
+        parcel_repository = ParcelRepository()
+
+        try:
+            query_res = base_layer.query(
+                where="equilibrium_calculated >= 2",
+                out_fields=["OBJECTID", "parcel_key", "map_unit_data"],
+                return_geometry=False,
+                result_record_count=1,
+            )
+
+            if len(query_res):
+                parcel = query_res.features[0]
+                executor = DaycentExecutor()
+                asyncio.run(
+                    executor.logic(
+                        dict(
+                            parcel_id=parcel.attributes["parcel_key"],
+                            start_year=1,
+                            end_year=5000,
+                            type="equilibrium",
+                        )
+                    )
+                )
+            else:
+                LOGGER.info("No parcel found to reprocess.")
+
+        except DaycentExecutionNetworkError as ne:
+            LOGGER.exception(
+                f"Network error when running Daycent equilibrium for parcel {parcel}"
+            )
+            try:
+                parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium", 3)
+            except Exception as e2:
+                LOGGER.error(
+                    f'Error trying to set parcel {parcel.attributes["parcel_key"]} as error.'
+                )
+                traceback.print_exc()
+        except Exception as e:
+            LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
+            traceback.print_exc()
+            try:
+                parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")
+            except Exception as e2:
+                LOGGER.error(
+                    f'Error trying to set parcel {parcel.attributes["parcel_key"]} as error.'
+                )
+                traceback.print_exc()
+
     elif execution == "equilibrium":
         executor = DaycentExecutor()
         asyncio.run(
             executor.logic(
                 dict(
-                    parcel_id=7999,
+                    parcel_id=194253,
                     start_year=1,
                     end_year=5000,
                     type="equilibrium",
