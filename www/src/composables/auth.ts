@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import OAuthInfo from '@arcgis/core/identity/OAuthInfo';
 import IdentityManager from '@arcgis/core/identity/IdentityManager';
 import Portal from '@arcgis/core/portal/Portal';

@@ -44,7 +44,7 @@ export function useSimulations() {
     });
 
     if (resp.addFeatureResults.length === 1 && !resp.addFeatureResults[0]?.error) {
-      const simulationId = resp.addFeatureResults[0]?.objectId!;
+      const simulationId = resp.addFeatureResults[0]!.objectId!;
       await jobManager.addJob({
         name: `jobs.process_created_simulation.ProcessCreatedSimulation:${simulationId}`,
         params: { 'simulation_id': simulationId }

@@ -21,10 +21,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="simulation in simulations">
+                    <tr v-for="simulation in simulations" :key="simulation.attributes.OBJECTID">
                         <td>{{ simulation.attributes.OBJECTID }}</td>
                         <td>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;" v-if="simulation.attributes.filters && simulation.attributes.filters.length">
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;"
+                                v-if="simulation.attributes.filters && simulation.attributes.filters.length">
                                 <template v-for="(f, fIdx) in simulation.attributes.filters" :key="fIdx">
                                     <SimulationParameter :parameter="f"></SimulationParameter>
                                 </template>
@@ -34,7 +35,8 @@
                             </div>
                         </td>
                         <td>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;" v-if="simulation.attributes.params && simulation.attributes.params.length">
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;"
+                                v-if="simulation.attributes.params && simulation.attributes.params.length">
                                 <template v-for="(p, pIdx) in simulation.attributes.params" :key="pIdx">
                                     <SimulationParameter :parameter="p"></SimulationParameter>
                                 </template>
@@ -51,19 +53,22 @@
                                 </div>
                                 <div>
                                     <div>{{ new Date(simulation.attributes.created_date).toLocaleString() }}</div>
-                                    <div>{{ simulation.attributes.completed_date ? new Date(simulation.attributes.completed_date).toLocaleString() : '-'
+                                    <div>{{ simulation.attributes.completed_date ? new
+                                        Date(simulation.attributes.completed_date).toLocaleString() : '-'
                                         }}
                                     </div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <span :class="`text-capitalize badge badge-${getStatusClass(simulation.attributes.status)}`">{{
-                                getStatusText(simulation.attributes.status) }}</span>
+                            <span
+                                :class="`text-capitalize badge badge-${getStatusClass(simulation.attributes.status)}`">{{
+                                    getStatusText(simulation.attributes.status) }}</span>
                         </td>
                         <td>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
-                                <router-link class="btn btn-sm btn-primary" :disabled="simulation.attributes.status != 'completed'"
+                                <router-link class="btn btn-sm btn-primary"
+                                    :disabled="simulation.attributes.status != 'completed'"
                                     :to="{ name: 'simulations-view', params: { id1: simulation.attributes.OBJECTID } }">
                                     Open
                                 </router-link>

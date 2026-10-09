@@ -7,10 +7,10 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 export function useBaseLayerExplorer() {
 
   // Reference to the base layer.
-  let _baseLayer: FeatureLayer = new FeatureLayer({ portalItem: { id: import.meta.env.VITE_AGOL_BASE_LAYER_VIEW_ID } });
+  const _baseLayer: FeatureLayer = new FeatureLayer({ portalItem: { id: import.meta.env.VITE_AGOL_BASE_LAYER_VIEW_ID } });
 
   // Caches
-  let _lastSurveyYear: Number | null = null;
+  let _lastSurveyYear: number | null = null;
   let _allCountiesCache: string[] | null = null;
   let _allBasinsCache: string[] | null = null;
   let _allCropsCache: ValueCount[] | null = null;
@@ -99,7 +99,7 @@ export function useBaseLayerExplorer() {
     const filteredValues = await _getAllColumn('irr_type', await buildWhereClauseFromFilters(filters, true));
     const filteredValuesNames = new Set(filteredValues.map(v => v.value));
 
-    for (let irrType of _allIrrigationTypesCache) {
+    for (const irrType of _allIrrigationTypesCache) {
       if (!filteredValuesNames.has(irrType.value))
         filteredValues.push({ value: irrType.value, count: 0 });
     }
@@ -122,7 +122,7 @@ export function useBaseLayerExplorer() {
     const filteredValues = await _getAllColumn('crop', await buildWhereClauseFromFilters(filters, true));
     const filteredValuesNames = new Set(filteredValues.map(v => v.value));
 
-    for (let crop of _allCropsCache) {
+    for (const crop of _allCropsCache) {
       if (!filteredValuesNames.has(crop.value))
         filteredValues.push({ value: crop.value, count: 0 });
     }
@@ -170,13 +170,13 @@ export function useBaseLayerExplorer() {
    */
   async function buildWhereClauseFromFilters(filters: Array<SimulationFilters>, only_last_year = false) {
     const clausesPerFilter: Record<string, Array<string>> = {};
-    for (let f of filters) {
+    for (const f of filters) {
       clausesPerFilter[f.name] = clausesPerFilter[f.name] ?? [];
       clausesPerFilter[f.name]!.push(`${f.column || f.name} = '${f.value}'`);
     }
 
     let where = !only_last_year ? "1=1" : `survey_year = '${await getLastSurveyYear()}'`;
-    for (let fName in clausesPerFilter) {
+    for (const fName in clausesPerFilter) {
       const clause = clausesPerFilter[fName]!.join(' OR ');
       where += ` AND (${clause}) `;
     }

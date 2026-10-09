@@ -201,7 +201,7 @@ async function handleMapReady() {
     });
 
   const timeSliderElement = document.querySelector("arcgis-time-slider") as ArcgisTimeSlider;
-  timeSliderElement.labelFormatFunction = (value, _1, element, _2) => {
+  timeSliderElement.labelFormatFunction = (value, _, element) => {
     if (Array.isArray(value)) value = value[0];
     element.innerText = `${new Date(value).getUTCFullYear()}`;
   };

@@ -37,7 +37,7 @@
 
             <div v-if="step === 2" class="d-grid grid-2 px-5 w-75 mx-auto gap-1">
               <template v-if="dataToAdd.type === 'filter'">
-                <div v-for="filter in filtersAvailable">
+                <div v-for="filter in filtersAvailable" :key="filter.name">
                   <UsuCard class="h-100">
                     <div class="gap-1 d-flex flex-column h-100">
                       <div>
@@ -57,7 +57,7 @@
               </template>
 
               <template v-else-if="dataToAdd.type === 'parameter'">
-                <div v-for="param in parametersAvailable">
+                <div v-for="param in parametersAvailable" :key="param.name">
                   <UsuCard class="h-100">
                     <div class="gap-1 d-flex flex-column h-100">
                       <div>
@@ -81,7 +81,7 @@
               <template v-if="dataToAdd.type === 'filter'">
                 <div v-if="dataToAdd.filter.type === 'location' || dataToAdd.filter.type === 'management'"
                   class="d-grid grid-min-100 gap-1" id="filter-config-type-location">
-                  <div class="form-check" v-for="opt in dataToAdd.filter.options">
+                  <div class="form-check" v-for="opt in dataToAdd.filter.options" :key="opt">
                     <input class="form-check-input" type="checkbox" :id="`input-${dataToAdd.filter.name}-${opt}`"
                       :value="opt" v-model="dataToAdd.value">
                     <label class="form-check-label" :for="`input-${dataToAdd.filter.name}-${opt}`">{{ opt }}</label>
@@ -98,7 +98,7 @@
                     <select class="form-control" v-model="dataToAdd.value.option" id="param-config-type-target-select"
                       @change="onSelectTargetItem()">
                       <option>Select a {{ dataToAdd.parameter.name }}</option>
-                      <option v-for="opt in dataToAdd.parameter.options" :value="opt.value">
+                      <option v-for="opt in dataToAdd.parameter.options" :value="opt.value" :key="opt.value">
                         {{ opt.label }}
                       </option>
                     </select>
@@ -167,8 +167,7 @@
             </div>
 
             <div class="mt-5">
-              <UsuButtonSpinner class="btn btn-block btn-lg btn-primary" @click="create()"
-                :loading="savingSimulation">
+              <UsuButtonSpinner class="btn btn-block btn-lg btn-primary" @click="create()" :loading="savingSimulation">
                 Create Simulation
               </UsuButtonSpinner>
             </div>
@@ -187,13 +186,10 @@ import { ref, type Ref } from 'vue';
 import UsuSpinner from '@/components/usu-spinner.vue';
 import UsuButtonSpinner from '@/components/usu-button-spinner.vue';
 import { useRouter } from 'vue-router';
-import { useAuth } from '@/composables/auth';
 import { useBaseLayerExplorer } from '@/composables/base-layer-explorer.ts';
 import type { SimulationFilters, SimulationParameters } from '@/types.ts';
-import { useJobManager } from '@/composables/job-manager.ts';
 import { useSimulations } from '@/composables/simulations.ts';
 
-const { user, credentials } = useAuth();
 const { createSimulation } = useSimulations();
 
 type FilterToAdd = {
@@ -518,7 +514,7 @@ function useFilter() {
 function useTextFilter() {
   if (dataToAdd.value.type === 'filter') {
     const filter = dataToAdd.value.filter;
-    for (let value of dataToAdd.value.value as string[]) {
+    for (const value of dataToAdd.value.value as string[]) {
       // Only adds a text filter if it was not already added before.
       if (!filters.value.find(f => f.column === filter.column && f.value === value)) {
         filters.value.push({
@@ -553,7 +549,7 @@ function useTargetParameter() {
     const targetName = dataToAdd.value.parameter.name!;
 
     const selectedOption = dataToAdd.value.value as ParameterToAdd['value'];
-    let parameter = parameters.value.find(p => {
+    const parameter = parameters.value.find(p => {
       return p.value === selectedOption.option
         && p.name === `${targetName.charAt(0).toUpperCase() + targetName.slice(1)} Target`
     });

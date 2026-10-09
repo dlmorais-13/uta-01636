@@ -5,7 +5,7 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer"
 export function useJobManager() {
   const layer = new FeatureLayer({ portalItem: { id: import.meta.env.VITE_AGOL_QUEUE_FEATURE_ID } });
 
-  async function addJob(job: Partial<Job>) : Promise<Number> {
+  async function addJob(job: Partial<Job>): Promise<number> {
     const features = [
       new Graphic({
         attributes: {
@@ -20,7 +20,7 @@ export function useJobManager() {
     const resp = await layer.applyEdits({ addFeatures: features });
 
     if (resp.addFeatureResults.length === 1 && !resp.addFeatureResults[0]?.error) {
-      return resp.addFeatureResults[0]?.objectId!;
+      return resp.addFeatureResults[0]!.objectId!;
     } else {
       console.error('Error while adding job.', resp.addFeatureResults);
       throw new Error('Error while adding job to queue.', { cause: resp.addFeatureResults });
