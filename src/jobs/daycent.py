@@ -25,6 +25,7 @@ from src.utils.management_options.Monoculture import Monoculture
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
 from src.apis.ssurgo_api import Ssurgo_API
 from src.models.parcel_repository import ParcelRepository
+from src.apis.daymet import DaymetNetworkError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -566,8 +567,23 @@ if __name__ == "__main__":
                     )
                 )
 
+            except (DaycentExecutionNetworkError, DaymetNetworkError) as ne:
+                LOGGER.exception(
+                    f"Network error when running Daycent equilibrium for parcel {parcel}"
+                )
+                try:
+                    parcel_repository.mark_parcel_as_precalc_error(
+                        parcel, "equilibrium", 3
+                    )
+                except Exception as e2:
+                    LOGGER.error(
+                        f'Error trying to set parcel {parcel.attributes["parcel_key"]} as error.'
+                    )
+                    traceback.print_exc()
             except Exception as e:
-                LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
+                LOGGER.error(
+                    f"Error running DayCent equilibrium for parcel {parcel.attributes['parcel_key']}"
+                )
                 traceback.print_exc()
                 try:
                     parcel_repository.mark_parcel_as_precalc_error(
@@ -612,7 +628,7 @@ if __name__ == "__main__":
             else:
                 LOGGER.info("No parcel found to reprocess.")
 
-        except DaycentExecutionNetworkError as ne:
+        except (DaycentExecutionNetworkError, DaymetNetworkError) as ne:
             LOGGER.exception(
                 f"Network error when running Daycent equilibrium for parcel {parcel}"
             )
@@ -624,7 +640,9 @@ if __name__ == "__main__":
                 )
                 traceback.print_exc()
         except Exception as e:
-            LOGGER.error(f"Error running DayCent equilibrium for parcel {parcel}")
+            LOGGER.error(
+                f"Error running DayCent equilibrium for parcel {parcel.attributes['parcel_key']}"
+            )
             traceback.print_exc()
             try:
                 parcel_repository.mark_parcel_as_precalc_error(parcel, "equilibrium")

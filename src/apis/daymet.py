@@ -20,6 +20,9 @@ The list of variables accepted by Daymet API.
 """
 DAYMET_VARIABLES = Literal["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
 
+class DaymetNetworkError(Exception):
+    """Error to be thrown when there is a network error accessing Daymet."""
+    pass
 
 class DaymetDownloader:
     """
@@ -130,10 +133,10 @@ class DaymetDownloader:
                         f.write(chunk)
         except requests.exceptions.HTTPError as httpError:
             LOGGER.error(f"An error occurred: {httpError}")
-            raise Exception("Error downloading data from Daymet") from httpError
+            raise DaymetNetworkError("Error downloading data from Daymet") from httpError
         except requests.exceptions.RequestException as e:
             LOGGER.error(f"An error occurred: {e}")
-            raise Exception("Error downloading data from Daymet") from e
+            raise DaymetNetworkError("Error downloading data from Daymet") from e
 
 
 if __name__ == "__main__":
