@@ -48,7 +48,7 @@ jobs:
           # TODO This must be updated to prod values in the future.
           # None of this information is sensitive.
           VITE_BASE_PATH="/uta-01636/"
-          VITE_AGOL_CLIENT_ID=JIWchkDWSV5puLFT
+          VITE_AGOL_CLIENT_ID=NfSH0XwqlYxRLRu7
           VITE_AGOL_BASE_LAYER_VIEW_ID=5dd898c8ec424e6181c5ade98b8eb37d
           VITE_AGOL_SIMULATIONS_LAYER_VIEW_ID=124c9592bc7046d58868dd442c38cf4c
           VITE_AGOL_QUEUE_FEATURE_ID=786b3e9813ec4357a9fd4727c1f36426
