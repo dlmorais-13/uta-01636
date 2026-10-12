@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     agol_url: str
     """Base URL for ArcGIS Online access."""
 
+    agol_api_key: str
+    """The API Key to authenticate to ArcGIS Online."""
+
     agol_client_id: str
     """The cliend ID to authenticate with ArcGIS Online."""
 

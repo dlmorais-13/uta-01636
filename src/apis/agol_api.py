@@ -30,9 +30,10 @@ class AgolAPI:
         try:
             self.gis = GIS(
                 url=settings.agol_url,
-                client_id=settings.agol_client_id,
-                client_secret=settings.agol_client_secret,
+                api_key=settings.agol_api_key,
             )
+            LOGGER.info(f"GIS Context URL: {self.gis.url}")
+            LOGGER.debug(f"GIS properties: {self.gis.properties}")
             LOGGER.info(f"{Fore.GREEN}✓ Authentication succeed.{Style.RESET_ALL}")
         except Exception as e:
             LOGGER.error(f"{Fore.RED}✕ Authentication failed: {e}{Style.RESET_ALL}")
@@ -402,7 +403,7 @@ class AgolAPI:
         # adding the new one.
         if len(same_attachment) > 0:
             for a in same_attachment:
-                ref.attachments.delete(objectid, a['id'])
+                ref.attachments.delete(objectid, a["id"])
 
         add_result = ref.attachments.add(
             oid=objectid, file_path=file_path, keywords=keywords

@@ -9,6 +9,7 @@ on:
       - Dockerfile
       - poetry.lock
       - daycent
+      - .github/workflows/docker-publish.yml
 
 env:
   REGISTRY: ghcr.io
