@@ -35,16 +35,26 @@ import type { ArcgisTimeSlider } from '@arcgis/map-components/components/arcgis-
 import TimeInterval from '@arcgis/core/time/TimeInterval';
 import MapViewConstraints from '@arcgis/core/views/2d/MapViewConstraints';
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
+import type Graphic from '@arcgis/core/Graphic';
 
 const { merge } = useLayerMerger();
 const route = useRoute();
 
-const simulations = ref([{ id: route.params.id1, code: 'A' }]);
-if (route.params.id2) simulations.value.push({ id: route.params.id2, code: 'B' });
+const simulations = ref<Array<{ id: string, code: string }>>([{ id: route.params.id1 as string, code: 'A' }]);
+if (route.params.id2) simulations.value.push({ id: route.params.id2 as string, code: 'B' });
 
 const totalCarbonStock: Ref<number[]> = ref([]);
 
-const { serviceId } = useSimulations();
+const { serviceId, getSimulation } = useSimulations();
+
+const simulationsData = (await Promise.all(
+  simulations.value
+    .map(s => getSimulation(Number(s.id)))
+)).reduce<Record<string, Graphic>>((acc, sd) => {
+  if (sd)
+    acc[sd.attributes.OBJECTID] = sd
+  return acc;
+}, {});
 
 const numberLabelClass: LabelClassProperties = {
   symbol: {
@@ -83,52 +93,25 @@ const gradientRenderer = new SimpleRenderer({
   visualVariables: [colorVisualVariable]
 });
 
-const featureLayers = simulations.value.map(simulation => new FeatureLayer({
-  portalItem: { id: serviceId.value },
-  outFields: ["*"],
-  minScale: 1000000,
-  maxScale: 1000,
-  renderer: gradientRenderer,
-  popupEnabled: true,
-  definitionExpression: `simulation_id = '${simulation.id}'`,
-  labelingInfo: [numberLabelClass],
-  timeInfo: {
-    startField: 'simulation_date',
-    interval: { unit: 'years', value: 1 }
-  },
-
-  featureReduction: {
-    type: "cluster",
-    clusterMinSize: 24,
-    maxScale: 10000,
-    fields: [
-      {
-        name: "carbon_stock",
-        onStatisticField: "carbon_stock",
-        statisticType: "avg"
+const featureLayers = simulations.value.map(simulation => {
+  return new FeatureLayer({
+    portalItem: { id: serviceId.value },
+    outFields: ['carbon_stock', 'simulation_date'],
+    minScale: 1000000,
+    maxScale: 1000,
+    renderer: gradientRenderer,
+    popupEnabled: true,
+    definitionExpression: `simulation_id = '${simulation.id}' and tract is not null`,
+    labelingInfo: [numberLabelClass],
+    timeInfo: {
+      startField: 'simulation_date',
+      interval: {
+        unit: 'years',
+        value: 1,
       }
-    ],
-    renderer: {
-      type: "simple",
-      symbol: {
-        type: "simple-marker",
-        color: [0, 122, 255, 0.8],
-        size: "24px",
-        outline: {
-          color: "white",
-          width: 1.5
-        }
-      },
-      visualVariables: [colorVisualVariable]
     },
-    labelingInfo: [
-      {
-        deconflictionStrategy: "none",
-        ...numberLabelClass
-      },
-    ],
-  }
-}));
+  })
+});
 
 let diffLayer: FeatureLayer | null = null;
 if (featureLayers.length > 1) {
@@ -208,6 +191,7 @@ async function handleMapReady() {
   console.debug('featureLayers[0]', featureLayers[0]);
   if (featureLayers[0].timeInfo) {
     timeSliderElement.fullTimeExtent = featureLayers[0].timeInfo.fullTimeExtent;
+    timeSliderElement.fullTimeExtent?.end?.setFullYear(timeSliderElement.fullTimeExtent?.end?.getFullYear() - 1);
     timeSliderElement.stops = { interval: new TimeInterval({ unit: 'years', value: 1 }) };
   }
 

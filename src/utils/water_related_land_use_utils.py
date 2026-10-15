@@ -6,7 +6,7 @@ from arcgis.features import FeatureLayer, FeatureSet
 
 from src.settings import settings
 from src.apis.agol_api import AgolAPI
-from src.utils.geopandas_utils import GeoPandasUtils
+from src.utils.agol_geopandas_converter import AgolGeopandasConverter
 from src.models.config_repository import ConfigRepository
 
 LOGGER = logging.getLogger(__name__)
@@ -41,16 +41,22 @@ class WaterRelatedLandUseUtils:
             config_repository: ConfigRepository = ConfigRepository()
 
             ref: FeatureLayer = api.get_layer_ref(service_id)
-            wrlu_land_use_columns = config_repository.get_config("WRLU_LAND_USE_COLUMNS").split(",")
+            wrlu_land_use_columns = config_repository.get_config(
+                "WRLU_LAND_USE_COLUMNS"
+            ).split(",")
             land_use_column = WaterRelatedLandUseUtils.get_land_use_column(
                 ref, wrlu_land_use_columns
             )
-            wrlu_land_use_values = config_repository.get_config("WRLU_LAND_USE_VALUES").split(",")
+            wrlu_land_use_values = config_repository.get_config(
+                "WRLU_LAND_USE_VALUES"
+            ).split(",")
             land_use_values: str = ",".join(
                 map(lambda v: f"'{v}'", wrlu_land_use_values)
             )
 
-            wrlu_county_columns = config_repository.get_config("WRLU_COUNTY_COLUMNS").split(",")
+            wrlu_county_columns = config_repository.get_config(
+                "WRLU_COUNTY_COLUMNS"
+            ).split(",")
             county_column = WaterRelatedLandUseUtils.get_county_column(
                 ref, wrlu_county_columns
             )
@@ -69,7 +75,7 @@ class WaterRelatedLandUseUtils:
                 f"Downloaded FeatureSet. Type {type(fs)}, CRS: {fs.spatial_reference}"
             )
 
-            geojson = GeoPandasUtils.featureset_to_geojson(fs)
+            geojson = AgolGeopandasConverter.featureset_to_geojson(fs)
             with open(geojson_path, "w") as file:
                 file.write(geojson)
             return geojson
@@ -97,7 +103,7 @@ class WaterRelatedLandUseUtils:
         Raises:
             RuntimeError: if no column is found.
         """
-        
+
         columns = list(
             set([f["name"] for f in featureLayer.properties.fields])
             & set(wrlu_land_use_columns)
@@ -130,7 +136,7 @@ class WaterRelatedLandUseUtils:
         Raises:
             RuntimeError: if no column is found.
         """
-        
+
         columns = list(
             set([f["name"] for f in featureLayer.properties.fields])
             & set(wrlu_county_columns)

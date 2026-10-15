@@ -15,7 +15,6 @@ from pandas import Series
 from src.settings import settings
 from src.jobs.job import Job
 from src.apis.agol_api import AgolAPI, AgolAPI_Injector
-from src.utils.geopandas_utils import GeoPandasUtils
 from src.utils.water_related_land_use_utils import WaterRelatedLandUseUtils
 from src.utils.agol_geopandas_converter import AgolGeopandasConverter
 from src.models.config_repository import ConfigRepository
@@ -56,7 +55,9 @@ class CreateBaseLayer(Job):
         wrlu_specs = self.configRepository.get_configs("WRLU_SPEC_")
         lower_case_counties = [
             county.lower()
-            for county in self.configRepository.get_config("STUDY_AREA_COUNTIES").split(",")
+            for county in self.configRepository.get_config("STUDY_AREA_COUNTIES").split(
+                ","
+            )
         ]
 
         base_layer_ref: FeatureLayer = self.api.get_layer_ref(
@@ -448,18 +449,23 @@ class CreateBaseLayer(Job):
             None,
         )
 
-        basin_subarea_column_name = next((
-            col_spec.split(":")[0]
-            for col_spec in most_recent_columns
-            if col_spec.split(":")[1] == "basin_subarea"
-        ), None)
+        basin_subarea_column_name = next(
+            (
+                col_spec.split(":")[0]
+                for col_spec in most_recent_columns
+                if col_spec.split(":")[1] == "basin_subarea"
+            ),
+            None,
+        )
 
         layer_projected = parcels.to_crs(epsg=4326)
 
         # Get the name of the county with capitalized letters.
         county_name = [
             c_name
-            for c_name in self.configRepository.get_config("STUDY_AREA_COUNTIES").split(",")
+            for c_name in self.configRepository.get_config("STUDY_AREA_COUNTIES").split(
+                ","
+            )
             if c_name.lower() == county
         ][0]
 
@@ -475,7 +481,7 @@ class CreateBaseLayer(Job):
                 "basin_subarea": feature_attrs[basin_subarea_column_name],
                 "map_unit_data": feature_attrs["map_unit_data"],
                 "equilibrium_calculated": 0,
-                "base_calculated": 0
+                "base_calculated": 0,
             }
 
             geom = Polygon(
@@ -593,7 +599,7 @@ class CreateBaseLayer(Job):
 
     def transform_irr_type(self, irr_type: str):
         """
-        Transform the irrigation type from WRLU into the 
+        Transform the irrigation type from WRLU into the
         format normalized expected by the base layer.
 
         Args:
@@ -616,7 +622,7 @@ class CreateBaseLayer(Job):
 
     def get_soils_gdf(self, county: str) -> GeoDataFrame:
         """
-        Gets the GeoDataFrame for the soils data of SSURGO for a 
+        Gets the GeoDataFrame for the soils data of SSURGO for a
         specific county. If there exists a GeoJson cached, will be used,
         otherwise it will be computed using ArcGIS public data and
         cached for future use.
@@ -660,7 +666,7 @@ class CreateBaseLayer(Job):
                 out_sr=3857,
             )
 
-            geojson = GeoPandasUtils.featureset_to_geojson(fs)
+            geojson = AgolGeopandasConverter.featureset_to_geojson(fs)
 
             with open(soils_geojson_path, "w") as file:
                 file.write(geojson)

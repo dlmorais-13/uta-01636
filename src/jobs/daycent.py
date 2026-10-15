@@ -686,7 +686,7 @@ if __name__ == "__main__":
                     parcel_id=211136,
                     simulation_id=16,
                     start_year=2026,
-                    end_year=2026 + 50,
+                    end_year=2026 + 49,
                     type="simulation",
                 )
             )

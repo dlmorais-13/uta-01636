@@ -58,7 +58,10 @@ class Settings(BaseSettings):
     """The ID for SSURGO layer of map units in ArcGIS Online."""
 
     usa_census_counties_layer_id: str
-    """The ID for USA Census counties in ArcGIS Online."""
+    """The ID for USA Census Counties in ArcGIS Online."""
+
+    usa_census_tracts_layer_id: str
+    """The ID for USA Census Tracts in ArcGIS Online."""
 
     daymet_base_url: str
     """The base URL to access DayMet API."""
@@ -71,14 +74,14 @@ class Settings(BaseSettings):
     # prism_mesh_base_url: str
     # prism_mesh_crs: str
 
-    job_manager_id: Optional[int] = None
+    job_manager_id: int
     """
     The ID for the job manager to use in this instance of the app.
     If the defined, the instance will behave as a job executor instead
     of a webapi.
     """
 
-    job_polling_time: Optional[int] = None
+    job_polling_time: int
     """The time between checks for jobs to be executed (in seconds)."""
 
     workdir: str

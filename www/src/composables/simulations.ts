@@ -29,6 +29,23 @@ export function useSimulations() {
     return simulations;
   }
 
+  async function getSimulation(id: number) {
+    console.debug('Simulation.getSimulation.id', id);
+    const simulationsQueryResult = (await simTableRef.queryFeatures({
+      where: `OBJECTID = ${id}`,
+      outFields: ['*']
+    })).features;
+
+    if (simulationsQueryResult.length !== 1) {
+      return null;
+    } else {
+      const simulation = simulationsQueryResult[0] as Graphic;
+      simulation.attributes.filters = JSON.parse(simulation.attributes.filters || '[]');
+      simulation.attributes.params = JSON.parse(simulation.attributes.params || '[]');
+      return simulation;
+    }
+  }
+
   async function createSimulation(filters: Array<SimulationFilters>, parameters: Array<SimulationParameters>): Promise<number | false> {
     await waitForAuth();
     const resp = await simTableRef.applyEdits({
@@ -56,5 +73,5 @@ export function useSimulations() {
     return false;
   }
 
-  return { serviceId, getSimulations, createSimulation }
+  return { serviceId, getSimulation, getSimulations, createSimulation }
 }

@@ -22,6 +22,15 @@ class SimulationColumns(Enum):
     FILTERS = "filters"
     """The list of filters for the simulation."""
 
+    START_YEAR = "start_year"
+    """The year in which the simulation starts."""
+
+    END_YEAR = "end_year"
+    """The year in which the simulation ends (inclusive)."""
+
+    PARCELS = "parcels"
+    """The number of parcels that are simulated."""
+
     OWNER = "owner"
     """The identifier of the user who created the simulation."""
 
@@ -45,6 +54,9 @@ class SimulationStatus(Enum):
 
     IN_PROGRESS = "in_progress"
     """The simulation's jobs were created and are currently available for execution."""
+
+    CALCULATED = "calculated"
+    """The simulation's jobs were all executed and the values calculated."""
 
     COMPLETED = "completed"
     """All of the simulation's jobs were executed and it is available for analysis."""

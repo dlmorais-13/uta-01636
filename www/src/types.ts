@@ -2,7 +2,7 @@ export type SimulationFilters = {
   type: 'location' | 'management' | 'text',
   name: string,
   description?: string,
-  column: string,
+  column?: string,
   value?: string,
   options?: string[]
 }

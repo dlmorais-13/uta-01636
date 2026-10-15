@@ -189,6 +189,7 @@ export function useBaseLayerExplorer() {
     getAllCounties,
     getAllCrops,
     getAllIrrigationTypes,
-    getParcelStatistics
+    getParcelStatistics,
+    getLastSurveyYear
   }
 }

@@ -33,6 +33,11 @@
                             <div v-else class="text-muted font-italic">
                                 No filters configured.
                             </div>
+                            <hr />
+                            <SimulationParameter
+                                :parameter="{ type: 'text', name: 'Parcels', value: Number(simulation.attributes.parcels).toLocaleString() }"
+                                :calculated="true">
+                            </SimulationParameter>
                         </td>
                         <td>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25em;"
@@ -43,6 +48,17 @@
                             </div>
                             <div v-else class="text-muted font-italic">
                                 No parameters configured.
+                            </div>
+                            <hr />
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25em;">
+                                <SimulationParameter
+                                    :parameter="{ type: 'text', name: 'Start Year', value: simulation.attributes.start_year }"
+                                    :calculated="true">
+                                </SimulationParameter>
+                                <SimulationParameter
+                                    :parameter="{ type: 'text', name: 'End Year', value: simulation.attributes.end_year }"
+                                    :calculated="true">
+                                </SimulationParameter>
                             </div>
                         </td>
                         <td>

@@ -1,13 +1,30 @@
-from arcgis.features import Feature
+from arcgis.features import Feature, FeatureSet
 from arcgis.geometry import Polygon
 from geopandas import GeoDataFrame
 from shapely.ops import orient
+import json
 
 
 class AgolGeopandasConverter:
     """
     Class to convert data from AGOL format to GeoPandas and vice-versa.
     """
+
+    @staticmethod
+    def featuresToDataframe(feature_set: FeatureSet) -> GeoDataFrame:
+        """
+        Convert a FeatureSet into a GeoDataFrame.
+
+        Args:
+            feature_set: The feature set to convert.
+
+        Returns:
+            The newly build GeoDataFrame.
+        """
+
+        return GeoDataFrame.from_features(json.loads(feature_set.to_geojson)).set_crs(
+            3857
+        )
 
     @staticmethod
     def dataframeToFeatures(df: GeoDataFrame, wkid: int = 4326) -> list[Feature]:
@@ -63,3 +80,32 @@ class AgolGeopandasConverter:
                 arcgis_rings.append(list(interior.coords))
 
         return arcgis_rings
+
+    @staticmethod
+    def featureset_to_geojson(fs: FeatureSet) -> str:
+        """
+        Converts a feature set into GeoJson.
+
+        Args:
+            fs: FeatureSet to be converted.
+
+        Returns:
+            The GeoJson with all the features.
+        """
+
+        if type(fs) is FeatureSet:
+            return FeatureSet(
+                features=[f for f in fs.features if f.geometry is not None],
+                geometry_type=fs.geometry_type,
+                spatial_reference=fs.spatial_reference,
+                fields=fs.fields,
+            ).to_geojson
+        elif type(fs) is dict:
+            return FeatureSet(
+                features=[f for f in fs["features"] if f["geometry"] is not None],
+                geometry_type=fs["geometryType"],
+                spatial_reference=fs["spatialReference"],
+                fields=fs["fields"],
+            ).to_geojson
+        else:
+            raise RuntimeError(f"Unknown type of FeatureSet: {type(fs)}")

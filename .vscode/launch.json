@@ -3,18 +3,6 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "compounds": [
-        {
-            "name": "Python Debugger: App & Job",
-            "configurations": ["Python Debugger: App", "Python Debugger: Job"],
-            "stopAll": true,
-            "presentation": {
-                "hidden": false,
-                "group": "dev",
-                "order": 1
-            }
-        }
-    ],
     "configurations": [
         {
             "name": "Python Debugger: Current file as module",
@@ -26,6 +14,8 @@
             "env": {
                 "DEBUG": "True",
                 "LOG_FILE": "True",
+                "JOB_MANAGER_ID": "1",
+                "JOB_POLLING_TIME": "5",
                 "EXECUTOR_MOD": "3",
                 "EXECUTOR_QTY": "10",
                 "EXECUTOR_LIMIT": "1",
@@ -35,21 +25,6 @@
                 // "EXECUTOR_MODE": "base"
                 // "EXECUTOR_MODE": "simulation"
             },
-            "justMyCode": false,
-            "autoReload": {
-                "enable": true,
-                "include": [
-                    "**/*.py"
-                ]
-            }
-        },
-        {
-            "name": "Python Debugger: App",
-            "type": "debugpy",
-            "request": "launch",
-            "console": "integratedTerminal",
-            "module": "src.main",
-            "cwd": "${workspaceFolder}",
             "justMyCode": false,
             "autoReload": {
                 "enable": true,
