@@ -164,4 +164,4 @@ class GroupCalculatedSimulation(Job):
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(GroupCalculatedSimulation().logic({"simulation_id": 5}))
+    asyncio.run(GroupCalculatedSimulation().logic({"simulation_id": 1}))

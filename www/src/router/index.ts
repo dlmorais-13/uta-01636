@@ -16,8 +16,13 @@ const router = createRouter({
   },
   {
     name: 'simulations-view',
-    path: '/simulations/:id1/:id2?',
+    path: '/simulations/:id1',
     component: () => import('@/pages/simulations-view-page.vue')
+  },
+  {
+    name: 'simulations-compare-view',
+    path: '/simulations/:id1/:id2',
+    component: () => import('@/pages/simulations-compare-view-page.vue')
   },
     // {
     //   path: '/admin',
